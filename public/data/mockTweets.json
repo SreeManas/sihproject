@@ -1,0 +1,22 @@
+{
+  "tweets": [
+    {
+      "id": "1",
+      "username": "coastalwatch",
+      "text": "Reports of high waves near Chennai marina. Fishermen advised caution.",
+      "timestamp": 1699990000000
+    },
+    {
+      "id": "2",
+      "username": "weather_alerts_in",
+      "text": "Heavy rainfall leads to localized flood in Kochi downtown. Stay safe!",
+      "timestamp": 1699993600000
+    },
+    {
+      "id": "3",
+      "username": "citizen_reporter",
+      "text": "Seeing unusual receding water levels at the beach — could this be a tsunami sign? Authorities please check.",
+      "timestamp": 1700000000000
+    }
+  ]
+}
