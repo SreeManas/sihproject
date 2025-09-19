@@ -1,174 +1,376 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import { listenReports } from '../services/reportService.js'
-import { aggregateToHeatFeatures, postsToGeoJSON, hexbinAggregate } from '../utils/socialHotspotUtils.js'
-import socialMap from '../services/socialMapService.js'
+// src/components/Dashboard.jsx
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || import.meta.env.REACT_APP_MAPBOX_TOKEN || ''
+import { listenReports } from "../services/reportService.js";
+import { aggregateToHeatFeatures, postsToGeoJSON } from "../utils/socialHotspotUtils.js";
+import socialMap from "../services/socialMapService.js";
 
-const DEFAULT_CENTER = [78.9629, 20.5937]
-const DEFAULT_ZOOM = 4.2
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
+
+const DEFAULT_CENTER = [78.9629, 20.5937];
+const DEFAULT_ZOOM = 4.2;
+
+const OSM_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    },
+  },
+  layers: [{ id: "osm", type: "raster", source: "osm" }],
+};
 
 export default function Dashboard() {
-  const mapRef = useRef(null)
-  const [reports, setReports] = useState([])
-  const [showReports, setShowReports] = useState(true)
-  const [showSocial, setShowSocial] = useState(true)
-  const [dateRange, setDateRange] = useState('24h')
-  const [hazardFilter, setHazardFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState('all')
-  const [socialPosts, setSocialPosts] = useState([])
-  const [mapLoaded, setMapLoaded] = useState(false)
-  const [loadingSocial, setLoadingSocial] = useState(false)
+  const mapRef = useRef(null);
+  const containerRef = useRef(null);
 
-  useEffect(() => listenReports(setReports), [])
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const [socialPosts, setSocialPosts] = useState([]);
+  const [loadingSocial, setLoadingSocial] = useState(false);
 
+  const [dateRange, setDateRange] = useState("24h");
+  const [hazardFilter, setHazardFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  // 🔹 Fetch social posts
   const refreshSocial = useCallback(async () => {
-    setLoadingSocial(true)
+    setLoadingSocial(true);
     try {
-      const posts = await socialMap.fetchSocialForMap({ location: 'India', maxResults: 70 })
-      setSocialPosts(posts)
+      const posts = await socialMap.fetchSocialForMap({ location: "India", maxResults: 70 });
+      console.log("📊 Fetched posts:", posts); // Debug log
+      setSocialPosts(posts);
     } catch (e) {
-      console.error('Social fetch error', e)
+      console.error("❌ Social fetch error", e);
+      setMapError("Failed to load social data");
     } finally {
-      setLoadingSocial(false)
+      setLoadingSocial(false);
     }
-  }, [])
+  }, []);
 
+  // 🔹 Fetch data on component mount
   useEffect(() => {
-    if (mapRef.current) return
-    const map = new mapboxgl.Map({
-      container: 'map-root',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-    })
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    map.on('load', () => setMapLoaded(true))
-    mapRef.current = map
-    return () => map.remove()
-  }, [])
+    refreshSocial();
+  }, [refreshSocial]);
 
+  // 🔹 Initialize Map
+  useEffect(() => {
+    if (mapRef.current) return;
+    const container = containerRef.current || document.getElementById("map-root");
+    if (!container) return;
+
+    const initMap = (style) => {
+      const map = new mapboxgl.Map({
+        container,
+        style,
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+      map.on("load", () => {
+        console.log("✅ Map loaded!");
+        setMapLoaded(true);
+        map.resize();
+      });
+
+      map.on("error", (e) => {
+        console.error("❌ Map error:", e);
+        setMapError("Map failed to load");
+      });
+
+      mapRef.current = map;
+    };
+
+    if (!mapboxgl.accessToken || mapboxgl.accessToken.trim() === "") {
+      console.log("🗺️ Using OpenStreetMap (no Mapbox token)");
+      initMap(OSM_STYLE);
+    } else {
+      console.log("🗺️ Using Mapbox");
+      initMap("mapbox://styles/mapbox/streets-v11");
+    }
+
+    return () => {
+      if (mapRef.current) {
+        try { mapRef.current.remove(); } catch {}
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // 🔹 Filter posts
   const filteredSocial = useMemo(() => {
-    const now = Date.now()
-    const ranges = { '1h':3600000,'6h':21600000,'24h':86400000,'7d':604800000,'30d':2592000000 }
-    const cutoff = now - (ranges[dateRange] || ranges['24h'])
-    return socialPosts.filter(p => {
-      const ts = new Date(p.timestamp || p.processedAt || Date.now()).getTime()
-      if (ts < cutoff) return false
-      if (hazardFilter !== 'all' && (p.hazardLabel || 'Other') !== hazardFilter) return false
-      if (sourceFilter !== 'all' && (p.platform || 'unknown') !== sourceFilter) return false
-      return Number.isFinite(p.lat) && Number.isFinite(p.lon)
-    })
-  }, [socialPosts, dateRange, hazardFilter, sourceFilter])
+    const now = Date.now();
+    const ranges = { "1h": 3600000, "6h": 21600000, "24h": 86400000, "7d": 604800000, "30d": 2592000000 };
+    const cutoff = now - (ranges[dateRange] || ranges["24h"]);
+    
+    const filtered = socialPosts.filter((p) => {
+      const ts = new Date(p.timestamp || p.processedAt || Date.now()).getTime();
+      if (ts < cutoff) return false;
+      if (hazardFilter !== "all" && (p.hazardLabel || "Other") !== hazardFilter) return false;
+      if (sourceFilter !== "all" && (p.platform || "unknown") !== sourceFilter) return false;
+      return Number.isFinite(p.lat) && Number.isFinite(p.lon);
+    });
+    
+    console.log(`🔍 Filtered ${filtered.length} posts from ${socialPosts.length} total`);
+    return filtered;
+  }, [socialPosts, dateRange, hazardFilter, sourceFilter]);
 
-  const heatGeo = useMemo(() => aggregateToHeatFeatures(filteredSocial), [filteredSocial])
-  const pointsGeo = useMemo(() => postsToGeoJSON(filteredSocial), [filteredSocial])
-  const hexGeo = useMemo(() => hexbinAggregate(filteredSocial, { cellSize: 0.3 }), [filteredSocial])
+  const pointsGeo = useMemo(() => {
+    const geo = postsToGeoJSON(filteredSocial);
+    console.log("📍 Points GeoJSON:", geo);
+    return geo;
+  }, [filteredSocial]);
 
+  // 🔹 Add clustered source & layers
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return
-    const map = mapRef.current
+    if (!mapRef.current || !mapLoaded) return;
+    const map = mapRef.current;
 
-    const ensureSrc = (id, data) => {
-      if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data })
-      else map.getSource(id)?.setData?.(data)
+    // Update existing source or add new one
+    if (map.getSource("social-clusters")) {
+      map.getSource("social-clusters").setData(pointsGeo);
+      console.log("📊 Updated map data with", pointsGeo.features.length, "features");
+      return;
     }
 
-    // Reports points (user uploads)
-    const reportsData = {
-      type: 'FeatureCollection',
-      features: (reports || [])
-        .filter(r => Number.isFinite(r?.location?.longitude) && Number.isFinite(r?.location?.latitude))
-        .map(r => ({
-          type: 'Feature',
-          properties: {
-            id: r.id || `report_${Math.random()}`,
-            hazardType: r.hazardType || 'Other',
-            thumbUrl: r.thumbUrl || null,
-            fileUrl: r.fileUrl || null,
-            weight: Math.max(0.5, Math.min(10, r.priorityScore || 1)),
-          },
-          geometry: { type: 'Point', coordinates: [r.location.longitude, r.location.latitude] },
-        }))
-    }
-    ensureSrc('reports', reportsData)
+    console.log("🎨 Adding map layers with", pointsGeo.features.length, "features");
 
-    // Reports heat source uses same data but Mapbox heatmap expects GeoJSON with properties.weight
-    ensureSrc('reports-heat', reportsData)
+    // Add source
+    map.addSource("social-clusters", {
+      type: "geojson",
+      data: pointsGeo,
+      cluster: true,
+      clusterMaxZoom: 14,
+      clusterRadius: 50,
+    });
 
-    if (!map.getLayer('reports-clusters')) {
-      map.addLayer({ id:'reports-clusters', type:'circle', source:'reports', filter:['has','point_count'], paint:{
-        'circle-color':['step',['get','point_count'],'#90cdf4',20,'#63b3ed',50,'#4299e1',100,'#3182ce'],
-        'circle-radius':['step',['get','point_count'],12,20,20,50,28,100,36],
-      }})
-      map.addLayer({ id:'reports-cluster-count', type:'symbol', source:'reports', filter:['has','point_count'], layout:{ 'text-field':['get','point_count_abbreviated'], 'text-size':12 }, paint:{ 'text-color':'#1a365d' } })
-      map.addLayer({ id:'reports-unclustered', type:'circle', source:'reports', filter:['!',['has','point_count']], paint:{ 'circle-color':'#2b6cb0','circle-radius':6,'circle-stroke-width':1,'circle-stroke-color':'#fff' } })
-      // Reports heatmap layer (visualize uploads density)
-      map.addLayer({ id:'reports-heat-layer', type:'heatmap', source:'reports-heat', maxzoom:12, layout:{ visibility: showReports?'visible':'none' }, paint:{
-        'heatmap-weight':['interpolate',['linear'],['get','weight'],0,0,10,1],
-        'heatmap-intensity':0.7,
-        'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(0,0,0,0)',0.2,'#c6f6d5',0.4,'#9ae6b4',0.6,'#68d391',0.8,'#48bb78',1,'#2f855a'],
-        'heatmap-radius':['interpolate',['linear'],['zoom'],0,2,10,18],
-        'heatmap-opacity':0.6,
-      }})
-    }
-    map.setLayoutProperty('reports-clusters','visibility', showReports?'visible':'none')
-    map.setLayoutProperty('reports-cluster-count','visibility', showReports?'visible':'none')
-    map.setLayoutProperty('reports-unclustered','visibility', showReports?'visible':'none')
-    if (map.getLayer('reports-heat-layer')) map.setLayoutProperty('reports-heat-layer','visibility', showReports?'visible':'none')
+    // Cluster circles
+    map.addLayer({
+      id: "clusters",
+      type: "circle",
+      source: "social-clusters",
+      filter: ["has", "point_count"],
+      paint: {
+        "circle-color": [
+          "step", ["get", "point_count"],
+          "#4299e1", 10, "#faf089", 30, "#ed8936", 50, "#e53e3e"
+        ],
+        "circle-radius": [
+          "step", ["get", "point_count"],
+          15, 10, 20, 30, 25, 50, 30
+        ],
+        "circle-opacity": 0.8,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#fff"
+      },
+    });
 
-    // Social
-    ensureSrc('social-heat', heatGeo)
-    ensureSrc('social-points', pointsGeo)
-    ensureSrc('social-hex', hexGeo)
+    // Cluster count label
+    map.addLayer({
+      id: "cluster-count",
+      type: "symbol",
+      source: "social-clusters",
+      filter: ["has", "point_count"],
+      layout: {
+        "text-field": "{point_count_abbreviated}",
+        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-size": 12,
+      },
+      paint: { 
+        "text-color": "#000",
+        "text-halo-color": "#fff",
+        "text-halo-width": 1
+      },
+    });
 
-    if (!map.getLayer('social-heat-layer')) {
-      map.addLayer({ id:'social-heat-layer', type:'heatmap', source:'social-heat', maxzoom:12, layout:{ visibility: showSocial?'visible':'none' }, paint:{
-        'heatmap-weight':['interpolate',['linear'],['get','weight'],0,0,10,1],
-        'heatmap-intensity':0.8,
-        'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(33,102,172,0)',0.2,'rgb(103,169,207)',0.4,'rgb(209,229,240)',0.6,'rgb(253,219,199)',0.8,'rgb(239,138,98)',1,'rgb(178,24,43)'],
-        'heatmap-radius':['interpolate',['linear'],['zoom'],0,2,10,20],
-        'heatmap-opacity':0.8,
-      }})
-    } else {
-      map.setLayoutProperty('social-heat-layer','visibility', showSocial?'visible':'none')
-    }
+    // Individual points
+    map.addLayer({
+      id: "unclustered-point",
+      type: "circle",
+      source: "social-clusters",
+      filter: ["!", ["has", "point_count"]],
+      paint: {
+        "circle-radius": 8,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#fff",
+        "circle-opacity": 0.8,
+        "circle-color": [
+          "case",
+          [">=", ["get", "priorityScore"], 15], "#e53e3e",
+          [">=", ["get", "priorityScore"], 10], "#ed8936",
+          [">=", ["get", "priorityScore"], 5], "#faf089",
+          "#4299e1"
+        ],
+      },
+    });
 
-    if (!map.getLayer('social-points-layer')) {
-      map.addLayer({ id:'social-points-layer', type:'circle', source:'social-points', minzoom:3, layout:{ visibility: showSocial?'visible':'none' }, paint:{ 'circle-radius':4,'circle-color':'#dd6b20','circle-stroke-width':1,'circle-stroke-color':'#fff' } })
-    } else {
-      map.setLayoutProperty('social-points-layer','visibility', showSocial?'visible':'none')
-    }
+    // Popup on click for individual points
+    map.on("click", "unclustered-point", (e) => {
+      const props = e.features[0].properties;
+      const [lon, lat] = e.features[0].geometry.coordinates;
+      
+      new mapboxgl.Popup()
+        .setLngLat([lon, lat])
+        .setHTML(`
+          <div class="p-2">
+            <strong>${props.hazardLabel || 'Unknown Hazard'}</strong><br/>
+            Priority: ${props.priorityScore || 'N/A'}<br/>
+            Platform: ${props.platform || 'Unknown'}<br/>
+            Location: ${lat.toFixed(4)}, ${lon.toFixed(4)}<br/>
+            ${props.content ? `<div class="mt-2 text-sm text-gray-600">${props.content.substring(0, 100)}...</div>` : ''}
+          </div>
+        `)
+        .addTo(map);
+    });
 
-  }, [reports, heatGeo, pointsGeo, hexGeo, showReports, showSocial, mapLoaded])
+    // Zoom into cluster when clicked
+    map.on("click", "clusters", (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
+      const clusterId = features[0].properties.cluster_id;
+      map.getSource("social-clusters").getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.easeTo({
+          center: features[0].geometry.coordinates,
+          zoom: zoom,
+        });
+      });
+    });
 
-  useEffect(() => { refreshSocial() }, [refreshSocial])
+    // Cursor styling
+    map.on("mouseenter", "clusters", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "clusters", () => { map.getCanvas().style.cursor = ""; });
+    map.on("mouseenter", "unclustered-point", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "unclustered-point", () => { map.getCanvas().style.cursor = ""; });
+
+  }, [mapLoaded, pointsGeo]);
+
+  // Get unique hazard types for filter
+  const hazardTypes = useMemo(() => {
+    const types = [...new Set(socialPosts.map(p => p.hazardLabel || 'Other'))];
+    return types.sort();
+  }, [socialPosts]);
+
+  // Get unique platforms for filter
+  const platforms = useMemo(() => {
+    const plats = [...new Set(socialPosts.map(p => p.platform || 'unknown'))];
+    return plats.sort();
+  }, [socialPosts]);
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col">
-      {/* Controls */}
-      <div className="p-3 bg-white border-b flex items-center gap-3">
-        <div className="font-semibold text-blue-700">Dashboard</div>
-        <div className="ml-auto flex items-center gap-2">
-          <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={showReports} onChange={e=>setShowReports(e.target.checked)} /> Show Reports</label>
-          <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={showSocial} onChange={e=>setShowSocial(e.target.checked)} /> Show Social Hotspots</label>
-          <select className="text-sm border rounded px-2 py-1" value={dateRange} onChange={e=>setDateRange(e.target.value)}>
-            <option value="1h">1h</option><option value="6h">6h</option><option value="24h">24h</option><option value="7d">7d</option><option value="30d">30d</option>
-          </select>
-          <select className="text-sm border rounded px-2 py-1" value={hazardFilter} onChange={e=>setHazardFilter(e.target.value)}>
-            <option value="all">All</option><option value="Tsunami">Tsunami</option><option value="Cyclone">Cyclone</option><option value="Flood">Flood</option><option value="Earthquake">Earthquake</option><option value="Other">Other</option>
-          </select>
-          <select className="text-sm border rounded px-2 py-1" value={sourceFilter} onChange={e=>setSourceFilter(e.target.value)}>
-            <option value="all">All sources</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option><option value="facebook">Facebook</option>
-          </select>
-          <button onClick={refreshSocial} className="px-3 py-1.5 bg-blue-600 text-white rounded">Refresh</button>
+    <div className="h-screen flex flex-col">
+      {/* Header with controls */}
+      <div className="p-3 bg-white border-b flex items-center gap-3 z-10 shadow-sm">
+        <div className="font-semibold text-blue-700">
+          Social Hotspots Dashboard
+        </div>
+        
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-600">
+            {filteredSocial.length} hotspots
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-3">
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-1">
+            <label className="text-sm text-gray-600">Time:</label>
+            <select 
+              value={dateRange} 
+              onChange={(e) => setDateRange(e.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="1h">Last Hour</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+          </div>
+
+          {/* Hazard Filter */}
+          {hazardTypes.length > 0 && (
+            <div className="flex items-center gap-1">
+              <label className="text-sm text-gray-600">Hazard:</label>
+              <select 
+                value={hazardFilter} 
+                onChange={(e) => setHazardFilter(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="all">All Types</option>
+                {hazardTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Source Filter */}
+          {platforms.length > 0 && (
+            <div className="flex items-center gap-1">
+              <label className="text-sm text-gray-600">Source:</label>
+              <select 
+                value={sourceFilter} 
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="all">All Sources</option>
+                {platforms.map(platform => (
+                  <option key={platform} value={platform}>{platform}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Refresh Button */}
+          <button
+            onClick={refreshSocial}
+            disabled={loadingSocial}
+            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loadingSocial ? "Loading..." : "Refresh"}
+          </button>
         </div>
       </div>
-      {/* Map */}
-      <div id="map-root" className="flex-1" />
-      {loadingSocial && (<div className="absolute top-20 right-4 bg-white shadow px-3 py-2 rounded text-sm">Loading social hotspots...</div>)}
+
+      {/* Map Container */}
+      <div
+        id="map-root"
+        ref={containerRef}
+        className="flex-1 w-full relative"
+        style={{ minHeight: "500px", border: "1px solid #e5e7eb" }}
+      />
+
+      {/* Status indicators */}
+      {!mapLoaded && (
+        <div className="absolute bottom-4 left-4 bg-yellow-100 border border-yellow-300 p-3 rounded text-sm">
+          🗺️ Map is loading...
+        </div>
+      )}
+      
+      {mapError && (
+        <div className="absolute bottom-4 right-4 bg-red-100 border border-red-300 p-3 rounded text-sm max-w-xs">
+          ❌ {mapError}
+        </div>
+      )}
+      
+      {loadingSocial && (
+        <div className="absolute top-20 right-4 bg-white border p-3 shadow rounded text-sm">
+          📡 Loading social data...
+        </div>
+      )}
+
+      {socialPosts.length === 0 && !loadingSocial && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-100 border p-3 rounded text-sm">
+          📭 No social data available
+        </div>
+      )}
     </div>
-  )
+  );
 }
