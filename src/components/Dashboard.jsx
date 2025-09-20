@@ -264,113 +264,194 @@ export default function Dashboard() {
   }, [socialPosts]);
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header with controls */}
-      <div className="p-3 bg-white border-b flex items-center gap-3 z-10 shadow-sm">
-        <div className="font-semibold text-blue-700">
-          Social Hotspots Dashboard
-        </div>
-        
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-600">
-            {filteredSocial.length} hotspots
-          </span>
-        </div>
-
-        <div className="ml-auto flex items-center gap-3">
-          {/* Date Range Filter */}
-          <div className="flex items-center gap-1">
-            <label className="text-sm text-gray-600">Time:</label>
-            <select 
-              value={dateRange} 
-              onChange={(e) => setDateRange(e.target.value)}
-              className="border rounded px-2 py-1 text-sm"
-            >
-              <option value="1h">Last Hour</option>
-              <option value="6h">Last 6 Hours</option>
-              <option value="24h">Last 24 Hours</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-            </select>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header Section */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">📊</span>
+                </div>
+                Social Hotspots Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">Real-time hazard monitoring and social media analysis</p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-blue-700">
+                    {filteredSocial.length} active hotspots
+                  </span>
+                </div>
+              </div>
+              
+              <button
+                onClick={refreshSocial}
+                disabled={loadingSocial}
+                className="btn btn-primary btn-md flex items-center gap-2"
+              >
+                {loadingSocial ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh Data
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-
-          {/* Hazard Filter */}
-          {hazardTypes.length > 0 && (
-            <div className="flex items-center gap-1">
-              <label className="text-sm text-gray-600">Hazard:</label>
+          
+          {/* Filters Section */}
+          <div className="mt-6 flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Time Range:</label>
               <select 
-                value={hazardFilter} 
-                onChange={(e) => setHazardFilter(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
+                value={dateRange} 
+                onChange={(e) => setDateRange(e.target.value)}
+                className="select w-32"
               >
-                <option value="all">All Types</option>
-                {hazardTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
+                <option value="1h">Last Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
               </select>
             </div>
-          )}
 
-          {/* Source Filter */}
-          {platforms.length > 0 && (
-            <div className="flex items-center gap-1">
-              <label className="text-sm text-gray-600">Source:</label>
-              <select 
-                value={sourceFilter} 
-                onChange={(e) => setSourceFilter(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="all">All Sources</option>
-                {platforms.map(platform => (
-                  <option key={platform} value={platform}>{platform}</option>
-                ))}
-              </select>
-            </div>
-          )}
+            {hazardTypes.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Hazard Type:</label>
+                <select 
+                  value={hazardFilter} 
+                  onChange={(e) => setHazardFilter(e.target.value)}
+                  className="select w-40"
+                >
+                  <option value="all">All Types</option>
+                  {hazardTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          {/* Refresh Button */}
-          <button
-            onClick={refreshSocial}
-            disabled={loadingSocial}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loadingSocial ? "Loading..." : "Refresh"}
-          </button>
+            {platforms.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Source:</label>
+                <select 
+                  value={sourceFilter} 
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                  className="select w-32"
+                >
+                  <option value="all">All Sources</option>
+                  {platforms.map(platform => (
+                    <option key={platform} value={platform}>{platform}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Map Container */}
-      <div
-        id="map-root"
-        ref={containerRef}
-        className="flex-1 w-full relative"
-        style={{ minHeight: "500px", border: "1px solid #e5e7eb" }}
-      />
+      {/* Main Content */}
+      <div className="flex-1 relative">
+        {/* Map Container */}
+        <div
+          id="map-root"
+          ref={containerRef}
+          className="w-full h-full"
+          style={{ minHeight: "600px" }}
+        />
 
-      {/* Status indicators */}
-      {!mapLoaded && (
-        <div className="absolute bottom-4 left-4 bg-yellow-100 border border-yellow-300 p-3 rounded text-sm">
-          🗺️ Map is loading...
+        {/* Status Indicators */}
+        <div className="absolute top-4 left-4 z-10 space-y-2">
+          {!mapLoaded && (
+            <div className="alert alert-info flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>🗺️ Map is loading...</span>
+            </div>
+          )}
+          
+          {loadingSocial && (
+            <div className="alert alert-info flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>📡 Loading social data...</span>
+            </div>
+          )}
         </div>
-      )}
-      
-      {mapError && (
-        <div className="absolute bottom-4 right-4 bg-red-100 border border-red-300 p-3 rounded text-sm max-w-xs">
-          ❌ {mapError}
-        </div>
-      )}
-      
-      {loadingSocial && (
-        <div className="absolute top-20 right-4 bg-white border p-3 shadow rounded text-sm">
-          📡 Loading social data...
-        </div>
-      )}
 
-      {socialPosts.length === 0 && !loadingSocial && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-100 border p-3 rounded text-sm">
-          📭 No social data available
+        {mapError && (
+          <div className="absolute top-4 right-4 z-10">
+            <div className="alert alert-danger max-w-sm">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>❌ {mapError}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {socialPosts.length === 0 && !loadingSocial && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="alert alert-secondary">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <span>📭 No social data available</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="absolute bottom-4 right-4 z-10">
+          <div className="card bg-white/95 backdrop-blur-sm">
+            <div className="card-header py-3">
+              <h3 className="text-sm font-semibold text-gray-900">Priority Legend</h3>
+            </div>
+            <div className="card-body py-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-xs text-gray-600">High (15+)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <span className="text-xs text-gray-600">Medium (10-14)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <span className="text-xs text-gray-600">Low (5-9)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-xs text-gray-600">Info (0-4)</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
