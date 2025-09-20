@@ -111,3 +111,4 @@ Crowdsourced hazard reporting + live map-based dashboard that combines citizen r
 - Set `VITE_USE_MOCK_SOCIAL=true` for demo hotspots. Use the proxy route when you have API access.
 - WebSocket demo runs on `ws://localhost:5051` and emits mock posts every few seconds.
 - This is a hackathon prototype; do not use permissive rules in production.
+# sihproject-update
