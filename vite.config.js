@@ -68,14 +68,12 @@ export default defineConfig(({ mode }) => {
       __APP_ENV__: JSON.stringify(env.NODE_ENV || 'development')
     },
     
-    // Performance optimizations
     optimizeDeps: {
       include: ['react', 'react-dom', 'mapbox-gl', 'firebase/app', 'firebase/firestore', 'firebase/storage'],
       exclude: ['@vitejs/plugin-react']
     },
     
-    
-    // Plugins
+    // Plugins - simplified for Vercel compatibility
     plugins: [
       react(),
       mode === 'analyze' && visualizer({
@@ -88,34 +86,6 @@ export default defineConfig(({ mode }) => {
         algorithm: 'gzip',
         ext: '.gz',
         deleteOriginFile: false
-      }),
-      mode === 'production' && viteImagemin({
-        gifsicle: {
-          optimizationLevel: 7,
-          interlaced: false
-        },
-        optipng: {
-          optimizationLevel: 7
-        },
-        mozjpeg: {
-          quality: 80
-        },
-        pngquant: {
-          quality: [0.8, 0.9],
-          speed: 4
-        },
-        svgo: {
-          plugins: [
-            {
-              name: 'removeViewBox',
-              active: false
-            },
-            {
-              name: 'removeEmptyAttrs',
-              active: true
-            }
-          ]
-        }
       })
     ].filter(Boolean)
   }
