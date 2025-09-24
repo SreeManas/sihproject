@@ -36,7 +36,12 @@ export default defineConfig(({ mode }) => {
         }
       },
       chunkSizeWarningLimit: 1000,
-      reportCompressedSize: false
+      reportCompressedSize: false,
+      // Firebase module resolution fix
+      commonjsOptions: {
+        include: [/node_modules\/firebase/],
+        transformMixedEsModules: true
+      }
     },
     
     // Development server configuration
@@ -65,9 +70,10 @@ export default defineConfig(({ mode }) => {
     
     // Performance optimizations
     optimizeDeps: {
-      include: ['react', 'react-dom', 'mapbox-gl'],
+      include: ['react', 'react-dom', 'mapbox-gl', 'firebase/app', 'firebase/firestore', 'firebase/storage'],
       exclude: ['@vitejs/plugin-react']
     },
+    
     
     // Plugins
     plugins: [
