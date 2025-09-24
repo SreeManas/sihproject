@@ -37,6 +37,14 @@ async function tryUpload(item) {
     userId: null,
     createdAt: serverTimestamp(),
     offlineSynced: true,
+    // Include verification fields (will be null for offline reports)
+    exifData: null,
+    exifLocationMatch: null,
+    exifDistanceKm: null,
+    delayedUpload: false,
+    imdVerification: { enabled: false },
+    browserLocation: item.coords ? { latitude: item.coords.latitude, longitude: item.coords.longitude } : null,
+    priorityScore: 0 // Default priority for offline reports
   });
 }
 

@@ -1,7 +1,8 @@
 // src/services/socialMapService.js
-// Lightweight social fetcher for map integration with mock fallback.
-// Prefer server proxy for real APIs to avoid CORS and rate limit issues.
+// Lightweight social fetcher for map integration with real API support.
 import { classifyHazard, extractEntities, analyzeSentiment, extractEngagementMetrics, calculatePriorityScore } from '../utils/enhancedHybridNLP.js'
+import geocodingService from './geocodingService.js'
+import { TwitterAPI } from './socialMediaAPI.js'
 
 const env = import.meta.env;
 const USE_MOCK = (env.VITE_USE_MOCK_SOCIAL || env.REACT_APP_USE_MOCK_SOCIAL || 'true').toLowerCase() === 'true';
@@ -80,57 +81,94 @@ async function processPosts(posts = []) {
 
 export async function fetchSocialForMap({ location = 'India', maxResults = 70 } = {}) {
   if (USE_MOCK) {
+    // Using mock data for social posts
     const base = mockPosts(Math.min(90, maxResults))
-    return await processPosts(base)
-  }
-
-  // If a proxy is configured, you can fetch real data here.
-  const PROXY = env.VITE_PROXY_URL || env.REACT_APP_PROXY_URL;
-  if (PROXY) {
+    // Raw mock posts generated
+    // First raw mock post available
+    
+    // Process posts with NLP (original functionality restored)
     try {
-      const url = `${PROXY}/api/proxy/twitter/search?q=${encodeURIComponent(location)}&max=${Math.min(100, maxResults)}`;
-      const resp = await fetch(url);
-      const json = await resp.json();
-      const users = new Map();
-      (json.includes?.users || []).forEach((u) => users.set(u.id, u));
-      const places = new Map();
-      (json.includes?.places || []).forEach((p) => places.set(p.id, p));
-
-      const normalized = (json.data || []).map((t) => {
-        const u = users.get(t.author_id);
-        const place = t.geo?.place_id ? places.get(t.geo.place_id) : null;
-        let lat, lon;
-        if (place?.geo?.bbox && place.geo.bbox.length === 4) {
-          const [minLon, minLat, maxLon, maxLat] = place.geo.bbox;
-          lon = (minLon + maxLon) / 2; lat = (minLat + maxLat) / 2;
-        }
-        return {
-          id: t.id,
-          platform: 'twitter',
-          author: u?.username || 'unknown',
-          text: t.text,
-          hazardLabel: 'Other',
-          entities: [],
-          sentiment: 'NEUTRAL',
-          engagement: { likes: t.public_metrics?.like_count || 0, shares: t.public_metrics?.retweet_count || 0 },
-          priorityScore: 0,
-          timestamp: t.created_at,
-          url: u?.username ? `https://twitter.com/${u.username}/status/${t.id}` : undefined,
-          lat, lon,
-          keywords: extractKeywords(t.text || ''),
-        };
-      });
-      return await processPosts(normalized);
-    } catch (e) {
-      console.warn('Proxy fetch failed, falling back to mock', e);
-      const base = mockPosts(Math.min(90, maxResults))
-      return await processPosts(base)
+      const processed = await processPosts(base);
+      // Posts processed
+      // First processed post available
+      return processed;
+    } catch (processingError) {
+      console.error('❌ Error processing posts with NLP:', processingError);
+      // Fallback: return raw mock data with basic processing if NLP fails
+      // Using fallback processing without NLP
+      return base.map(post => ({
+        ...post,
+        hazardLabel: 'Other',
+        confidence: 0.5,
+        sentiment: 'NEUTRAL',
+        priorityScore: Math.floor(Math.random() * 10) + 1, // Random priority 1-10
+        processedAt: new Date().toISOString()
+      }));
     }
   }
 
-  // No proxy and mock disabled => still return mock to keep demo running
-  const base = mockPosts(Math.min(90, maxResults))
-  return await processPosts(base)
+  // Try to fetch real Twitter data
+  try {
+    // Fetching real Twitter data for location
+    const twitterAPI = new TwitterAPI();
+    
+    // Fetch hazard-related tweets
+    const tweets = await twitterAPI.getHazardTweets(location, maxResults);
+    // Real tweets fetched
+    
+    // Process tweets to add coordinates and geocoding
+    const processedTweets = await Promise.all(tweets.map(async (tweet) => {
+      let processedTweet = { ...tweet };
+      
+      // If tweet has direct coordinates, use them
+      if (tweet.lat && tweet.lng) {
+        processedTweet.lat = tweet.lat;
+        processedTweet.lng = tweet.lng;
+      }
+      // If tweet has geocodedLocation but no coordinates, try to geocode
+      else if (tweet.geocodedLocation && !tweet.lat && !tweet.lng) {
+        try {
+          const geocoded = await geocodingService.geocodePlace(tweet.geocodedLocation);
+          processedTweet.lat = geocoded.lat;
+          processedTweet.lng = geocoded.lng;
+          processedTweet.geocodedAccuracy = geocoded.confidence;
+        } catch (geocodeError) {
+          // Geocoding failed for location
+        }
+      }
+      // If tweet has location text but no coordinates, try to geocode
+      else if (tweet.location && !tweet.lat && !tweet.lng) {
+        try {
+          const geocoded = await geocodingService.geocodePlace(tweet.location);
+          processedTweet.lat = geocoded.lat;
+          processedTweet.lng = geocoded.lng;
+          processedTweet.geocodedAccuracy = geocoded.confidence;
+        } catch (geocodeError) {
+          // Geocoding failed for tweet location
+        }
+      }
+      
+      return processedTweet;
+    }));
+    
+    // Filter out tweets without coordinates
+    const tweetsWithCoordinates = processedTweets.filter(tweet => 
+      tweet.lat && tweet.lng && geocodingService.validateCoordinates(tweet.lat, tweet.lng)
+    );
+    
+    // Tweets with valid coordinates counted
+    
+    // Process with NLP
+    const finalPosts = await processPosts(tweetsWithCoordinates);
+    return finalPosts;
+    
+  } catch (error) {
+    console.error('❌ Real Twitter API fetch failed:', error);
+    // Falling back to mock data
+    
+    const base = mockPosts(Math.min(90, maxResults));
+    return await processPosts(base);
+  }
 }
 
 export default { fetchSocialForMap };

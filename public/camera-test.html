@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .exif-data {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .camera-preview {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background-color: #000;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .captured-image {
+            max-width: 100%;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📷 Camera Capture Integration Test</h1>
+    
+    <div class="test-container">
+        <h2>Dependencies Check</h2>
+        <div id="dependencies-status"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Camera Test</h2>
+        <button id="start-camera" class="button">Start Camera</button>
+        <button id="stop-camera" class="button" disabled>Stop Camera</button>
+        <button id="capture-photo" class="button" disabled>Capture Photo</button>
+        
+        <video id="camera-preview" class="camera-preview" autoplay muted></video>
+        <canvas id="capture-canvas" style="display: none;"></canvas>
+        
+        <div id="captured-image-container"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>EXIF Data Analysis</h2>
+        <div id="exif-analysis"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script src="https://unpkg.com/exifreader@4.32.0/dist/exif-reader.js"></script>
+    <script>
+        let stream = null;
+        let capturedFile = null;
+        
+        // DOM elements
+        const startCameraBtn = document.getElementById('start-camera');
+        const stopCameraBtn = document.getElementById('stop-camera');
+        const capturePhotoBtn = document.getElementById('capture-photo');
+        const cameraPreview = document.getElementById('camera-preview');
+        const captureCanvas = document.getElementById('capture-canvas');
+        const capturedImageContainer = document.getElementById('captured-image-container');
+        const dependenciesStatus = document.getElementById('dependencies-status');
+        const exifAnalysis = document.getElementById('exif-analysis');
+        const testResults = document.getElementById('test-results');
+        
+        // Check dependencies
+        function checkDependencies() {
+            const checks = {
+                'ExifReader': typeof ExifReader !== 'undefined',
+                'MediaDevices': navigator.mediaDevices !== undefined,
+                'Geolocation': navigator.geolocation !== undefined,
+                'Canvas': document.createElement('canvas').getContext !== undefined
+            };
+            
+            let html = '';
+            Object.entries(checks).forEach(([dep, available]) => {
+                const status = available ? 'success' : 'error';
+                const icon = available ? '✅' : '❌';
+                html += `<div class="status ${status}">${icon} ${dep}: ${available ? 'Available' : 'Not Available'}</div>`;
+            });
+            
+            dependenciesStatus.innerHTML = html;
+            
+            // Enable/disable camera button based on availability
+            startCameraBtn.disabled = !checks.MediaDevices;
+            
+            return Object.values(checks).every(Boolean);
+        }
+        
+        // Start camera
+        async function startCamera() {
+            try {
+                // Request location permission first (especially on mobile)
+                if (navigator.geolocation) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(
+                                () => resolve(),
+                                () => resolve(),
+                                { enableHighAccuracy: true, timeout: 5000 }
+                            );
+                        });
+                        console.log('Location permission requested for better EXIF data');
+                    } catch (error) {
+                        console.warn('Location permission failed:', error);
+                    }
+                }
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1920 }, 
+                        height: { ideal: 1080 },
+                        facingMode: 'environment' // Prefer rear camera on mobile
+                    } 
+                });
+                
+                cameraPreview.srcObject = stream;
+                startCameraBtn.disabled = true;
+                stopCameraBtn.disabled = false;
+                capturePhotoBtn.disabled = false;
+                
+                addStatus('Camera started successfully', 'success');
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                addStatus(`Error starting camera: ${error.message}`, 'error');
+            }
+        }
+        
+        // Stop camera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                cameraPreview.srcObject = null;
+                stream = null;
+            }
+            
+            startCameraBtn.disabled = false;
+            stopCameraBtn.disabled = true;
+            capturePhotoBtn.disabled = true;
+            
+            addStatus('Camera stopped', 'info');
+        }
+        
+        // Capture photo
+        function capturePhoto() {
+            const canvas = captureCanvas;
+            const context = canvas.getContext('2d');
+            
+            // Set canvas size to match video
+            canvas.width = cameraPreview.videoWidth;
+            canvas.height = cameraPreview.videoHeight;
+            
+            // Draw video frame to canvas
+            context.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to blob with maximum quality for EXIF preservation
+            canvas.toBlob(async (blob) => {
+                if (blob) {
+                    // Create file object
+                    const now = new Date();
+                    capturedFile = new File([blob], `test-capture-${now.getTime()}.jpg`, {
+                        type: 'image/jpeg',
+                        lastModified: now.getTime()
+                    });
+                    
+                    // Display captured image
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(blob);
+                    img.className = 'captured-image';
+                    capturedImageContainer.innerHTML = '';
+                    capturedImageContainer.appendChild(img);
+                    
+                    addStatus('Photo captured successfully', 'success');
+                    
+                    // Analyze EXIF data
+                    await analyzeExifData(capturedFile);
+                }
+            }, 'image/jpeg', 1.0); // Maximum quality
+        }
+        
+        // Analyze EXIF data
+        async function analyzeExifData(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const tags = ExifReader.load(arrayBuffer);
+                
+                let exifHtml = '<div class="exif-data">';
+                exifHtml += '<h3>EXIF Data Found:</h3>';
+                
+                const exifData = {
+                    timestamp: null,
+                    lat: null,
+                    lon: null,
+                    make: null,
+                    model: null,
+                    otherTags: []
+                };
+                
+                // Extract relevant EXIF tags
+                if (tags.DateTimeOriginal) {
+                    exifData.timestamp = tags.DateTimeOriginal.description;
+                    exifHtml += `<div><strong>Timestamp:</strong> ${exifData.timestamp}</div>`;
+                }
+                
+                if (tags.GPSLatitude && tags.GPSLongitude) {
+                    exifData.lat = tags.GPSLatitude.description;
+                    exifData.lon = tags.GPSLongitude.description;
+                    exifHtml += `<div><strong>GPS:</strong> ${exifData.lat}, ${exifData.lon}</div>`;
+                }
+                
+                if (tags.Make) {
+                    exifData.make = tags.Make.description;
+                    exifHtml += `<div><strong>Camera Make:</strong> ${exifData.make}</div>`;
+                }
+                
+                if (tags.Model) {
+                    exifData.model = tags.Model.description;
+                    exifHtml += `<div><strong>Camera Model:</strong> ${exifData.model}</div>`;
+                }
+                
+                // Show other available tags
+                Object.entries(tags).forEach(([key, tag]) => {
+                    if (!['DateTimeOriginal', 'GPSLatitude', 'GPSLongitude', 'Make', 'Model'].includes(key)) {
+                        exifData.otherTags.push(`${key}: ${tag.description}`);
+                    }
+                });
+                
+                if (exifData.otherTags.length > 0) {
+                    exifHtml += '<h4>Other Tags:</h4>';
+                    exifData.otherTags.forEach(tag => {
+                        exifHtml += `<div>${tag}</div>`;
+                    });
+                }
+                
+                exifHtml += '</div>';
+                exifAnalysis.innerHTML = exifHtml;
+                
+                // Validate EXIF data
+                const hasExif = exifData.timestamp || exifData.lat || exifData.make || exifData.model;
+                const validationStatus = hasExif ? 'success' : 'error';
+                const validationMessage = hasExif ? 
+                    '✅ EXIF data detected - Camera capture integration working!' : 
+                    '❌ No EXIF data found - This may be normal for some browsers/devices';
+                
+                addStatus(validationMessage, validationStatus);
+                
+                // Update test results
+                updateTestResults(exifData);
+                
+            } catch (error) {
+                console.error('Error analyzing EXIF data:', error);
+                exifAnalysis.innerHTML = `<div class="status error">Error analyzing EXIF data: ${error.message}</div>`;
+            }
+        }
+        
+        // Update test results
+        function updateTestResults(exifData) {
+            const results = {
+                cameraAccess: true,
+                photoCapture: true,
+                exifExtraction: exifData.timestamp !== null || exifData.lat !== null || exifData.make !== null,
+                gpsData: exifData.lat !== null && exifData.lon !== null,
+                timestampData: exifData.timestamp !== null,
+                cameraInfo: exifData.make !== null || exifData.model !== null
+            };
+            
+            let html = '<h3>Integration Test Results:</h3>';
+            Object.entries(results).forEach(([test, passed]) => {
+                const status = passed ? 'success' : 'error';
+                const icon = passed ? '✅' : '❌';
+                const testName = test.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                html += `<div class="status ${status}">${icon} ${testName}: ${passed ? 'Passed' : 'Failed'}</div>`;
+            });
+            
+            testResults.innerHTML = html;
+        }
+        
+        // Add status message
+        function addStatus(message, type) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            // Insert after the current test container's header
+            const currentContainer = document.querySelector('.test-container:nth-child(2)');
+            currentContainer.appendChild(statusDiv);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (statusDiv.parentNode) {
+                    statusDiv.parentNode.removeChild(statusDiv);
+                }
+            }, 5000);
+        }
+        
+        // Event listeners
+        startCameraBtn.addEventListener('click', startCamera);
+        stopCameraBtn.addEventListener('click', stopCamera);
+        capturePhotoBtn.addEventListener('click', capturePhoto);
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const allDepsAvailable = checkDependencies();
+            
+            if (allDepsAvailable) {
+                addStatus('All dependencies available - Ready for testing!', 'success');
+            } else {
+                addStatus('Some dependencies missing - Testing may be limited', 'error');
+            }
+            
+            addStatus('This test page verifies camera capture and EXIF integration', 'info');
+        });
+    </script>
+</body>
+</html>

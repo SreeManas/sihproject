@@ -528,3 +528,4 @@ class SocialMediaService {
 
 // Export singleton instance
 export const socialMediaService = new SocialMediaService();
+export { TwitterAPI, YouTubeAPI, FacebookAPI, RSSFeedAPI, SocialMediaService };

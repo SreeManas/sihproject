@@ -20,6 +20,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Activity, AlertCircle, Users, Clock } from 'lucide-react';
+import { useT } from '../hooks/useT.js';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -30,6 +31,65 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
   const [acknowledgedIds, setAcknowledgedIds] = useState(new Set());
   const [localPosts, setLocalPosts] = useState([]);
   const { role } = useAuth();
+  
+  // Translation hooks
+  const tHazardAnalyticsDashboard = useT("Hazard Analytics Dashboard");
+  const tRealTimeMonitoring = useT("Real-time monitoring and analysis of hazard-related social media activity");
+  const tTimeRange = useT("Time Range:");
+  const tLastHour = useT("Last Hour");
+  const tLast6Hours = useT("Last 6 Hours");
+  const tLast24Hours = useT("Last 24 Hours");
+  const tLast7Days = useT("Last 7 Days");
+  const tLast30Days = useT("Last 30 Days");
+  const tAutoRefresh = useT("Auto Refresh:");
+  const tOn = useT("ON");
+  const tOff = useT("OFF");
+  const tTotalPosts = useT("Total Posts");
+  const tSocialMediaPostsAnalyzed = useT("Social media posts analyzed");
+  const tAvgPriorityScore = useT("Avg Priority Score");
+  const tAverageHazardPriority = useT("Average hazard priority");
+  const tTotalEngagement = useT("Total Engagement");
+  const tLikesAndShares = useT("Likes and shares");
+  const tResponseTime = useT("Response Time");
+  const tAverageResponseTime = useT("Average response time");
+  const tAlertThresholdConfiguration = useT("Alert Threshold Configuration");
+  const tTriggerAlertsAutomatically = useT("Trigger alerts automatically for items with priority ≥ threshold");
+  const tThreshold = useT("Threshold:");
+  const tTriggerAlerts = useT("Trigger Alerts");
+  const tViewAlerts = useT("View Alerts");
+  const tHazardDetectionOverTime = useT("Hazard Detection Over Time");
+  const tRealTimeHazardDetectionTrends = useT("Real-time hazard detection trends");
+  const tPlatformPerformance = useT("Platform Performance");
+  const tSocialMediaPlatformAnalysis = useT("Social media platform analysis");
+  const tHazardTypeDistribution = useT("Hazard Type Distribution");
+  const tBreakdownOfHazardTypes = useT("Breakdown of hazard types detected");
+  const tSentimentAnalysis = useT("Sentiment Analysis");
+  const tPublicSentimentTowardsHazards = useT("Public sentiment towards hazards");
+  const tLocationAnalysisDetails = useT("Location Analysis Details");
+  const tTopAffectedLocations = useT("Top affected locations and hazard distribution");
+  const tLocation = useT("Location");
+  const tPosts = useT("Posts");
+  const tAvgPriority = useT("Avg Priority");
+  const tTopHazard = useT("Top Hazard");
+  const tRecentHighPriorityAlerts = useT("Recent High Priority Alerts");
+  const tCriticalAlertsRequiringAttention = useT("Critical alerts requiring immediate attention");
+  const tUnknownHazard = useT("Unknown Hazard");
+  const tPriority = useT("Priority");
+  const tAcknowledged = useT("Acknowledged");
+  const tNoContentAvailable = useT("No content available");
+  const tUnknown = useT("Unknown");
+  const tUnacknowledge = useT("Unacknowledge");
+  const tAcknowledge = useT("Acknowledge");
+  const tNoHighPriorityAlerts = useT("No high priority alerts at this time");
+  const tRealTimeActivityFeed = useT("Real-time Activity Feed");
+  const tLiveUpdatesFromHazardDetection = useT("Live updates from hazard detection systems");
+  const tLive = useT("Live");
+  const tNoRecentActivity = useT("No recent activity");
+  const tExportReports = useT("Export & Reports");
+  const tDownloadAnalyticsData = useT("Download analytics data in various formats");
+  const tExportAsCSV = useT("Export as CSV");
+  const tExportAsJSON = useT("Export as JSON");
+  const tGenerateReport = useT("Generate Report");
 
   // Fallback: if no posts prop provided, fetch processed mock/proxy social posts
   useEffect(() => {
@@ -64,24 +124,24 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-lg">📈</span>
                 </div>
-                Hazard Analytics Dashboard
+                {tHazardAnalyticsDashboard}
               </h1>
-              <p className="text-gray-600 mt-2">Real-time monitoring and analysis of hazard-related social media activity</p>
+              <p className="text-gray-600 mt-2">{tRealTimeMonitoring}</p>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Time Range:</label>
+                <label className="text-sm font-medium text-gray-700">{tTimeRange}</label>
                 <select 
                   value={selectedTimeRange}
                   onChange={(e) => setSelectedTimeRange(e.target.value)}
                   className="select w-36"
                 >
-                  <option value="1h">Last Hour</option>
-                  <option value="6h">Last 6 Hours</option>
-                  <option value="24h">Last 24 Hours</option>
-                  <option value="7d">Last 7 Days</option>
-                  <option value="30d">Last 30 Days</option>
+                  <option value="1h">{tLastHour}</option>
+                  <option value="6h">{tLast6Hours}</option>
+                  <option value="24h">{tLast24Hours}</option>
+                  <option value="7d">{tLast7Days}</option>
+                  <option value="30d">{tLast30Days}</option>
                 </select>
               </div>
               
@@ -90,7 +150,7 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                 className={`btn ${autoRefresh ? 'btn-success' : 'btn-secondary'} btn-md flex items-center gap-2`}
               >
                 <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                Auto Refresh: {autoRefresh ? 'ON' : 'OFF'}
+                {tAutoRefresh} {autoRefresh ? tOn : tOff}
               </button>
             </div>
           </div>
@@ -99,36 +159,36 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <MetricCard 
-          title="Total Posts" 
+          title={tTotalPosts} 
           value={analytics.totalPosts.toLocaleString()} 
           icon={Activity} 
           color="blue" 
           trend="+12%" 
-          description="Social media posts analyzed" 
+          description={tSocialMediaPostsAnalyzed} 
         />
         <MetricCard 
-          title="Avg Priority Score" 
+          title={tAvgPriorityScore} 
           value={analytics.avgPriorityScore.toFixed(1)} 
           icon={AlertCircle} 
           color="red" 
           trend="+5%" 
-          description="Average hazard priority" 
+          description={tAverageHazardPriority} 
         />
         <MetricCard 
-          title="Total Engagement" 
+          title={tTotalEngagement} 
           value={analytics.totalEngagement.toLocaleString()} 
           icon={Users} 
           color="green" 
           trend="+8%" 
-          description="Likes and shares" 
+          description={tLikesAndShares} 
         />
         <MetricCard 
-          title="Response Time" 
+          title={tResponseTime} 
           value="3.2 min" 
           icon={Clock} 
           color="purple" 
           trend="-15%" 
-          description="Average response time" 
+          description={tAverageResponseTime} 
         />
       </div>
 
@@ -137,13 +197,13 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         <div className="card-body">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Alert Threshold Configuration</h3>
-              <p className="text-sm text-gray-600">Trigger alerts automatically for items with priority ≥ threshold</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">{tAlertThresholdConfiguration}</h3>
+              <p className="text-sm text-gray-600">{tTriggerAlertsAutomatically}</p>
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">Threshold:</span>
+                <span className="text-sm font-medium text-gray-700">{tThreshold}</span>
                 <span className="text-lg font-bold text-red-600">{alertThreshold}</span>
               </div>
               
@@ -169,14 +229,14 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
-                    Trigger Alerts
+                    {tTriggerAlerts}
                   </button>
                   {(role === 'analyst' || role === 'official') && (
                     <Link to="/alerts" className="btn btn-primary btn-sm flex items-center gap-1">
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                       </svg>
-                      View Alerts
+                      {tViewAlerts}
                     </Link>
                   )}
                 </div>
@@ -191,8 +251,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* Time Series */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Hazard Detection Over Time</h3>
-            <p className="text-sm text-gray-600">Real-time hazard detection trends</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tHazardDetectionOverTime}</h3>
+            <p className="text-sm text-gray-600">{tRealTimeHazardDetectionTrends}</p>
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
@@ -218,8 +278,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* Platform Performance */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Platform Performance</h3>
-            <p className="text-sm text-gray-600">Social media platform analysis</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tPlatformPerformance}</h3>
+            <p className="text-sm text-gray-600">{tSocialMediaPlatformAnalysis}</p>
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
@@ -245,8 +305,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* Hazard Distribution */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Hazard Type Distribution</h3>
-            <p className="text-sm text-gray-600">Breakdown of hazard types detected</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tHazardTypeDistribution}</h3>
+            <p className="text-sm text-gray-600">{tBreakdownOfHazardTypes}</p>
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
@@ -277,8 +337,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* Sentiment */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Sentiment Analysis</h3>
-            <p className="text-sm text-gray-600">Public sentiment towards hazards</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tSentimentAnalysis}</h3>
+            <p className="text-sm text-gray-600">{tPublicSentimentTowardsHazards}</p>
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
@@ -313,17 +373,17 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* Location Table */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Location Analysis Details</h3>
-            <p className="text-sm text-gray-600">Top affected locations and hazard distribution</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tLocationAnalysisDetails}</h3>
+            <p className="text-sm text-gray-600">{tTopAffectedLocations}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posts</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Priority</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Hazard</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{tLocation}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{tPosts}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{tAvgPriority}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{tTopHazard}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -358,8 +418,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
         {/* High Priority Alerts */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">Recent High Priority Alerts</h3>
-            <p className="text-sm text-gray-600">Critical alerts requiring immediate attention</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tRecentHighPriorityAlerts}</h3>
+            <p className="text-sm text-gray-600">{tCriticalAlertsRequiringAttention}</p>
           </div>
           <div className="card-body">
             <div className="space-y-4">
@@ -381,23 +441,23 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-gray-900">
-                              {post.hazardLabel || 'Unknown Hazard'}
+                              {post.hazardLabel || tUnknownHazard}
                             </span>
                             <span className={`badge ${post.priorityScore >= 15 ? 'bg-red-100 text-red-800' : post.priorityScore >= 10 ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                              Priority {post.priorityScore?.toFixed(1)}
+                              {tPriority} {post.priorityScore?.toFixed(1)}
                             </span>
                             {isAcknowledged && (
-                              <span className="badge bg-green-100 text-green-800">Acknowledged</span>
+                              <span className="badge bg-green-100 text-green-800">{tAcknowledged}</span>
                             )}
                           </div>
                           <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                            {post.text || post.content || 'No content available'}
+                            {post.text || post.content || tNoContentAvailable}
                           </p>
                           <div className="flex items-center justify-between">
                             <div className="text-xs text-gray-500">
                               <span>{new Date(post.timestamp || post.processedAt).toLocaleString()}</span>
                               <span className="mx-2">•</span>
-                              <span>{post.platform || 'Unknown'}</span>
+                              <span>{post.platform || tUnknown}</span>
                             </div>
                             <button
                               onClick={() => setAcknowledgedIds(prev => {
@@ -414,7 +474,7 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                               <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              {isAcknowledged ? 'Unacknowledge' : 'Acknowledge'}
+                              {isAcknowledged ? tUnacknowledge : tAcknowledge}
                             </button>
                           </div>
                         </div>
@@ -430,7 +490,7 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-gray-600">No high priority alerts at this time</p>
+                  <p className="text-gray-600">{tNoHighPriorityAlerts}</p>
                 </div>
               )}
             </div>
@@ -442,12 +502,12 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
       <div className="card mb-8">
         <div className="card-header flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Real-time Activity Feed</h3>
-            <p className="text-sm text-gray-600">Live updates from hazard detection systems</p>
+            <h3 className="text-lg font-semibold text-gray-900">{tRealTimeActivityFeed}</h3>
+            <p className="text-sm text-gray-600">{tLiveUpdatesFromHazardDetection}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-green-600">Live</span>
+            <span className="text-sm font-medium text-green-600">{tLive}</span>
           </div>
         </div>
         <div className="card-body">
@@ -486,7 +546,7 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
             
             {realTimeData.length === 0 && (
               <div className="text-center py-4">
-                <p className="text-gray-500">No recent activity</p>
+                <p className="text-gray-500">{tNoRecentActivity}</p>
               </div>
             )}
           </div>
@@ -496,8 +556,8 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
       {/* Export */}
       <div className="card">
         <div className="card-header">
-          <h3 className="text-lg font-semibold text-gray-900">Export & Reports</h3>
-          <p className="text-sm text-gray-600">Download analytics data in various formats</p>
+          <h3 className="text-lg font-semibold text-gray-900">{tExportReports}</h3>
+          <p className="text-sm text-gray-600">{tDownloadAnalyticsData}</p>
         </div>
         <div className="card-body">
           <div className="flex flex-wrap gap-4">
@@ -508,7 +568,7 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export as CSV
+              {tExportAsCSV}
             </button>
             <button 
               onClick={() => exportData('json', analytics, posts, selectedTimeRange)} 
@@ -517,13 +577,13 @@ export default function AnalyticsDashboard({ posts = [], realTimeData = [], filt
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export as JSON
+              {tExportAsJSON}
             </button>
             <button className="btn btn-secondary flex items-center gap-2">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Generate Report
+              {tGenerateReport}
             </button>
           </div>
         </div>

@@ -191,8 +191,8 @@ export function highlightKeywords(text) {
   const severityClasses = {
     critical: "bg-red-600 text-white px-1 rounded font-bold",
     high: "bg-orange-500 text-white px-1 rounded font-semibold",
-    medium: "bg-yellow-400 text-black px-1 rounded",
-    low: "bg-blue-200 text-blue-800 px-1 rounded"
+    medium: "bg-purple-500 text-white px-1 rounded",
+    low: "bg-indigo-200 text-indigo-800 px-1 rounded"
   };
   
   Object.entries(hazardKeywords).forEach(([severity, keywords]) => {
@@ -234,7 +234,7 @@ export function extractEngagementMetrics(post) {
 }
 
 // Priority scoring for posts
-export function calculatePriorityScore(classificationResult, entities, engagement) {
+export function calculatePriorityScore(classificationResult, entities, engagement, meta = {}) {
   let score = 0;
   
   // Hazard severity weight
@@ -263,5 +263,16 @@ export function calculatePriorityScore(classificationResult, entities, engagemen
   const totalEngagement = engagement.likes + engagement.shares + engagement.comments;
   score += Math.log10(totalEngagement + 1);
   
+  // Apply verification adjustments
+  // meta may include: delayedUpload (bool), exifLocationMatch (bool|null), imdVerification (object)
+  if (meta.delayedUpload) score -= 2; // penalize delayed uploads
+  if (meta.exifLocationMatch === false) score -= 3; // big penalty for mismatch
+  if (meta.imdVerification?.enabled) {
+    if (meta.imdVerification.status === 'verified') score += 3;
+    if (meta.imdVerification.status === 'not_verified') score -= 3;
+  }
+  
+  // ensure bounds
+  score = Math.max(0, score);
   return Math.round(score * 10) / 10;
 }

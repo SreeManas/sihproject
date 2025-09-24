@@ -53,7 +53,7 @@ export const useRealTimeProcessing = (onNewPost, onConnectionChange) => {
         wsRef.current = new WebSocket(WS_URL);
 
         wsRef.current.onopen = () => {
-          console.log('WebSocket connected');
+          // WebSocket connected
           setIsConnected(true);
           setConnectionStatus('connected');
           reconnectAttemptsRef.current = 0;
@@ -76,12 +76,12 @@ export const useRealTimeProcessing = (onNewPost, onConnectionChange) => {
               processIncomingPost(data.data);
             }
           } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
+            // Error parsing WebSocket message
           }
         };
 
         wsRef.current.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.code, event.reason);
+          // WebSocket disconnected
           setIsConnected(false);
           setConnectionStatus('disconnected');
           onConnectionChange?.(false);
@@ -100,12 +100,12 @@ export const useRealTimeProcessing = (onNewPost, onConnectionChange) => {
         };
 
         wsRef.current.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          // WebSocket error
           setConnectionStatus('error');
         };
 
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        // Failed to create WebSocket connection
         setConnectionStatus('error');
       }
     }

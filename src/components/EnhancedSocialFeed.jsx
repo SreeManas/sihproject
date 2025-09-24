@@ -8,13 +8,14 @@ import {
   extractEngagementMetrics,
   calculatePriorityScore 
 } from "../utils/enhancedHybridNLP.js";
+import { useT } from "../hooks/useT.js";
 
 const SeverityBadge = ({ level }) => {
   const colors = {
     critical: "bg-red-600 text-white",
     high: "bg-orange-500 text-white",
-    medium: "bg-yellow-400 text-black",
-    low: "bg-blue-500 text-white"
+    medium: "bg-purple-500 text-white",
+    low: "bg-indigo-500 text-white"
   };
   
   return (
@@ -28,13 +29,15 @@ const PriorityIndicator = ({ score }) => {
   const getColor = (score) => {
     if (score >= 15) return "text-red-600";
     if (score >= 10) return "text-orange-500";
-    if (score >= 5) return "text-yellow-600";
-    return "text-blue-500";
+    if (score >= 5) return "text-purple-600";
+    return "text-indigo-600";
   };
+  
+  const tPriority = useT("Priority:");
   
   return (
     <div className={`font-bold ${getColor(score)}`}>
-      Priority: {score}
+      {tPriority} {score}
     </div>
   );
 };
@@ -72,10 +75,91 @@ const EngagementMetrics = ({ metrics }) => (
   </div>
 );
 
+const VerificationBadges = ({ post }) => {
+  if (!post) return null;
+  
+  const badges = [];
+  
+  // Delayed upload badge
+  if (post.delayedUpload) {
+    badges.push({
+      text: 'Delayed Upload',
+      className: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      icon: '⏰'
+    });
+  }
+  
+  // EXIF location match/mismatch
+  if (post.exifLocationMatch === true) {
+    badges.push({
+      text: 'Location Verified',
+      className: 'bg-green-100 text-green-800 border-green-300',
+      icon: '📍'
+    });
+  } else if (post.exifLocationMatch === false) {
+    badges.push({
+      text: `Location Mismatch (${post.exifDistanceKm?.toFixed(1)}km)`,
+      className: 'bg-red-100 text-red-800 border-red-300',
+      icon: '📍'
+    });
+  }
+  
+  // IMD verification
+  if (post.imdVerification?.enabled) {
+    if (post.imdVerification.status === 'verified') {
+      badges.push({
+        text: 'IMD Verified',
+        className: 'bg-blue-100 text-blue-800 border-blue-300',
+        icon: '✅'
+      });
+    } else if (post.imdVerification.status === 'not_verified') {
+      badges.push({
+        text: 'IMD Not Verified',
+        className: 'bg-orange-100 text-orange-800 border-orange-300',
+        icon: '❌'
+      });
+    } else if (post.imdVerification.status === 'error') {
+      badges.push({
+        text: 'IMD Error',
+        className: 'bg-gray-100 text-gray-800 border-gray-300',
+        icon: '⚠️'
+      });
+    }
+  }
+  
+  if (badges.length === 0) return null;
+  
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {badges.map((badge, index) => (
+        <span
+          key={index}
+          className={`px-2 py-1 rounded text-xs border ${badge.className}`}
+          title={badge.text}
+        >
+          {badge.icon} {badge.text}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
   const [processedPosts, setProcessedPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processingErrors, setProcessingErrors] = useState([]);
+  
+  // Translation hooks
+  const tProcessingSocialMediaPosts = useT("Processing social media posts...");
+  const tProcessingWarnings = useT("Processing Warnings:");
+  const tPostsProcessed = useT("posts processed");
+  const tAvgPriority = useT("Avg Priority:");
+  const tUnknown = useT("unknown");
+  const tSocial = useT("social");
+  const tHazard = useT("Hazard:");
+  const tSentiment = useT("Sentiment:");
+  const tPosted = useT("Posted:");
+  const tNoPostsMatchFilters = useT("No posts match the current filters");
 
   useEffect(() => {
     const processPosts = async () => {
@@ -104,7 +188,12 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
               const priorityScore = calculatePriorityScore(
                 classificationResult,
                 entities,
-                engagement
+                engagement,
+                {
+                  delayedUpload: post.delayedUpload || false,
+                  exifLocationMatch: post.exifLocationMatch || null,
+                  imdVerification: post.imdVerification || { enabled: false }
+                }
               );
               return {
                 ...post,
@@ -133,7 +222,16 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
                 highlightedText: post.text,
                 sentiment: "UNKNOWN",
                 engagement: extractEngagementMetrics(post),
-                priorityScore: 0,
+                priorityScore: calculatePriorityScore(
+                  { label: "Processing Error", confidence: 0 },
+                  [],
+                  extractEngagementMetrics(post),
+                  {
+                    delayedUpload: post.delayedUpload || false,
+                    exifLocationMatch: post.exifLocationMatch || null,
+                    imdVerification: post.imdVerification || { enabled: false }
+                  }
+                ),
                 error: true,
               };
             }
@@ -197,7 +295,7 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Processing social media posts...</p>
+          <p className="mt-2 text-gray-600">{tProcessingSocialMediaPosts}</p>
         </div>
       </div>
     );
@@ -208,7 +306,7 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
       {/* Processing Errors */}
       {processingErrors.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <h4 className="text-yellow-800 font-semibold">Processing Warnings:</h4>
+          <h4 className="text-yellow-800 font-semibold">{tProcessingWarnings}</h4>
           <ul className="text-yellow-700 text-sm mt-1">
             {processingErrors.map((error, idx) => (
               <li key={idx}>Post {error.index + 1}: {error.error}</li>
@@ -221,10 +319,10 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <div className="flex justify-between items-center">
           <span className="text-blue-800 font-semibold">
-            {filteredAndSortedPosts.length} posts processed
+            {filteredAndSortedPosts.length} {tPostsProcessed}
           </span>
           <span className="text-blue-600 text-sm">
-            Avg Priority: {(filteredAndSortedPosts.reduce((sum, post) => sum + post.priorityScore, 0) / filteredAndSortedPosts.length || 0).toFixed(1)}
+            {tAvgPriority} {(filteredAndSortedPosts.reduce((sum, post) => sum + post.priorityScore, 0) / filteredAndSortedPosts.length || 0).toFixed(1)}
           </span>
         </div>
       </div>
@@ -247,7 +345,7 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
               <div className="flex items-center gap-2">
                 <SeverityBadge level={getSeverityLevel(post.confidence, post.hazardLabel)} />
                 <span className="text-sm text-gray-500">
-                  @{post.author || 'unknown'} • {post.platform || 'social'}
+                  @{post.author || tUnknown} • {post.platform || tSocial}
                 </span>
               </div>
               <PriorityIndicator score={post.priorityScore} />
@@ -262,14 +360,14 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
             {/* Classification */}
             <div className="flex justify-between items-center text-sm mb-2">
               <div>
-                <span className="font-semibold text-gray-700">Hazard:</span> 
+                <span className="font-semibold text-gray-700">{tHazard}</span> 
                 <span className="ml-1">{post.hazardLabel}</span>
                 <span className="text-gray-500 ml-2">
                   ({(post.confidence * 100).toFixed(1)}% confidence)
                 </span>
               </div>
               <div>
-                <span className="font-semibold text-gray-700">Sentiment:</span>
+                <span className="font-semibold text-gray-700">{tSentiment}</span>
                 <span className={`ml-1 ${
                   post.sentiment === 'POSITIVE' ? 'text-green-600' :
                   post.sentiment === 'NEGATIVE' ? 'text-red-600' : 'text-gray-600'
@@ -284,12 +382,15 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
               <EntityDisplay entities={post.entities} />
             )}
             
+            {/* Verification Badges */}
+            <VerificationBadges post={post} />
+            
             {/* Engagement Metrics */}
             <EngagementMetrics metrics={post.engagement} />
             
             {/* Timestamp */}
             <div className="text-xs text-gray-400 mt-2">
-              Posted: {new Date(post.timestamp || post.processedAt).toLocaleString()}
+              {tPosted} {new Date(post.timestamp || post.processedAt).toLocaleString()}
             </div>
           </div>
         ))}
@@ -297,7 +398,7 @@ const SocialFeed = ({ posts, filters = {}, onPostSelect }) => {
       
       {filteredAndSortedPosts.length === 0 && !loading && (
         <div className="text-center py-12 text-gray-500">
-          No posts match the current filters
+          {tNoPostsMatchFilters}
         </div>
       )}
     </div>

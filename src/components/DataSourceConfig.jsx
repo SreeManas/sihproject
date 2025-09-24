@@ -1,5 +1,6 @@
 // src/components/DataSourceConfig.jsx
 import React, { useState } from 'react';
+import { useT } from '../hooks/useT.js';
 
 const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
   const [config, setConfig] = useState({
@@ -10,6 +11,24 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
     refreshInterval: currentConfig.refreshInterval || 5,
     ...currentConfig
   });
+
+  // Translation hooks
+  const tDataSourceConfiguration = useT("Data Source Configuration");
+  const tSocialMediaPlatforms = useT("Social Media Platforms");
+  const tLocationFocus = useT("Location Focus");
+  const tMaximumResults = useT("Maximum Results");
+  const tEnableRealTimeUpdates = useT("Enable Real-time Updates");
+  const tRefreshInterval = useT("Refresh Interval");
+  const tMinutes = useT("minutes");
+  const tCurrentConfiguration = useT("Current Configuration");
+  const tPlatforms = useT("Platforms");
+  const tLocation = useT("Location");
+  const tMaxResults = useT("Max Results");
+  const tRealTime = useT("Real-time");
+  const tEnabled = useT("Enabled");
+  const tDisabled = useT("Disabled");
+  const tRefresh = useT("Refresh");
+  const tEvery = useT("Every");
 
   const platformOptions = [
     { key: 'twitter', label: 'Twitter', icon: '🐦', color: 'text-blue-500' },
@@ -38,11 +57,11 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
-      <h3 className="text-lg font-semibold mb-4">Data Source Configuration</h3>
+      <h3 className="text-lg font-semibold mb-4">{tDataSourceConfiguration}</h3>
       {/* Platform Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Social Media Platforms
+          {tSocialMediaPlatforms}
         </label>
         <div className="grid grid-cols-2 gap-3">
           {platformOptions.map(platform => (
@@ -65,7 +84,7 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
       {/* Location Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Location Focus
+          {tLocationFocus}
         </label>
         <select
           value={config.location}
@@ -81,7 +100,7 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
       {/* Max Results */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Maximum Results: {config.maxResults}
+          {tMaximumResults}: {config.maxResults}
         </label>
         <input
           type="range"
@@ -104,7 +123,7 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
             className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
           />
           <span className="ml-2 text-sm font-medium text-gray-700">
-            Enable Real-time Updates
+            {tEnableRealTimeUpdates}
           </span>
         </label>
       </div>
@@ -113,7 +132,7 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
       {config.realTime && (
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Refresh Interval: {config.refreshInterval} minutes
+            {tRefreshInterval}: {config.refreshInterval} {tMinutes}
           </label>
           <input
             type="range"
@@ -128,14 +147,14 @@ const DataSourceConfig = ({ onConfigChange, currentConfig = {} }) => {
 
       {/* Configuration Summary */}
       <div className="bg-gray-50 p-3 rounded-md">
-        <h4 className="font-medium text-gray-900 mb-2">Current Configuration</h4>
+        <h4 className="font-medium text-gray-900 mb-2">{tCurrentConfiguration}</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Platforms: {config.platforms.join(', ')}</li>
-          <li>• Location: {config.location}</li>
-          <li>• Max Results: {config.maxResults}</li>
-          <li>• Real-time: {config.realTime ? 'Enabled' : 'Disabled'}</li>
+          <li>• {tPlatforms}: {config.platforms.join(', ')}</li>
+          <li>• {tLocation}: {config.location}</li>
+          <li>• {tMaxResults}: {config.maxResults}</li>
+          <li>• {tRealTime}: {config.realTime ? tEnabled : tDisabled}</li>
           {config.realTime && (
-            <li>• Refresh: Every {config.refreshInterval} minutes</li>
+            <li>• {tRefresh}: {tEvery} {config.refreshInterval} {tMinutes}</li>
           )}
         </ul>
       </div>

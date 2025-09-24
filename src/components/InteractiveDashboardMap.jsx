@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MapPin, Users, AlertTriangle, TrendingUp, Filter, Layers, Search, Download, RefreshCw, Eye, MessageSquare } from 'lucide-react';
+import { useT } from '../hooks/useT.js';
+import socialMap from '../services/socialMapService.js';
 
 const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], onReportSelect }) => {
+  // InteractiveDashboardMap component mounted
+  const [socialPosts, setSocialPosts] = useState([]);
+  const [loadingSocial, setLoadingSocial] = useState(false);
+  
   const [selectedFilters, setSelectedFilters] = useState({
     hazardTypes: ['all'],
     timeRange: '24h',
@@ -9,6 +15,70 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
     severity: ['all'],
     verificationStatus: ['all']
   });
+
+  // Translation hooks
+  const tINCOISDashboard = useT("INCOIS Dashboard");
+  const tRealTimeOceanHazardMonitoring = useT("Real-time Ocean Hazard Monitoring");
+  const tLiveStatistics = useT("Live Statistics");
+  const tTotalReports = useT("Total Reports");
+  const tCitizenReports = useT("Citizen Reports");
+  const tSocialMedia = useT("Social Media");
+  const tCriticalAlerts = useT("Critical Alerts");
+  const tTimeRange = useT("Time Range");
+  const tLastHour = useT("Last Hour");
+  const tLast6Hours = useT("Last 6 Hours");
+  const tLast24Hours = useT("Last 24 Hours");
+  const tLast7Days = useT("Last 7 Days");
+  const tLast30Days = useT("Last 30 Days");
+  const tAllTime = useT("All Time");
+  const tHazardTypes = useT("Hazard Types");
+  const tDataSources = useT("Data Sources");
+  const tCitizenReportsLabel = useT("Citizen Reports");
+  const tSocialMediaLabel = useT("Social Media");
+  const tSeverity = useT("Severity");
+  const tCritical = useT("critical");
+  const tHigh = useT("high");
+  const tMedium = useT("medium");
+  const tLow = useT("low");
+  const tMapView = useT("Map View");
+  const tSatellite = useT("Satellite");
+  const tStreet = useT("Street");
+  const tTerrain = useT("Terrain");
+  const tShowHeatmap = useT("Show Heatmap");
+  const tExportData = useT("Export Data");
+  const tRefreshDashboard = useT("Refresh Dashboard");
+  const tInteractiveHazardMap = useT("Interactive Hazard Map");
+  const tActiveHotspots = useT("active hotspots");
+  const tReportsInView = useT("reports in view");
+  const tLastUpdated = useT("Last updated:");
+  const tMapLegend = useT("Map Legend");
+  const tCriticalHotspot = useT("Critical Hotspot (15+ severity)");
+  const tHighPriorityHotspot = useT("High Priority Hotspot (10+ severity)");
+  const tCitizenReportLegend = useT("Citizen Report");
+  const tSocialMediaPostLegend = useT("Social Media Post");
+  const tHeatmapActive = useT("Heatmap Active");
+  const tHotspotDetails = useT("Hotspot Details");
+  const tLocationInformation = useT("Location Information");
+  const tDetailedInformationAboutSelectedHotspot = useT("Detailed information about the selected hotspot would appear here.");
+
+  // Data fetching
+  const refreshSocial = useCallback(async () => {
+    setLoadingSocial(true);
+    try {
+      const posts = await socialMap.fetchSocialForMap({ location: "India", maxResults: 70 });
+      // Posts fetched in InteractiveDashboardMap
+      setSocialPosts(posts);
+    } catch (e) {
+      // Social fetch error in InteractiveDashboardMap
+    } finally {
+      setLoadingSocial(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSocial();
+  }, [refreshSocial]);
+
   const [mapView, setMapView] = useState('satellite'); // satellite, street, terrain
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState(null);
@@ -42,9 +112,14 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
   const filteredData = useMemo(() => {
     const allData = [
       ...citizenReports.map(report => ({ ...report, source: 'citizen' })),
-      ...socialMediaPosts.map(post => ({ ...post, source: 'social' }))
+      ...socialPosts.map(post => ({ ...post, source: 'social' }))
     ];
 
+    // Data prepared for filtering
+    if (allData.length > 0) {
+      // Sample data available
+      // Data keys available
+    }
     return allData.filter(item => {
       // Time range filter
       const itemTime = new Date(item.timestamp || item.processedAt);
@@ -64,7 +139,7 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
 
       // Hazard type filter
       if (!selectedFilters.hazardTypes.includes('all') && 
-          !selectedFilters.hazardTypes.includes(item.hazardType || item.hazardLabel)) {
+          !selectedFilters.hazardTypes.includes(item.hazardType || item.hazardLabel || 'Other')) {
         return false;
       }
 
@@ -73,15 +148,18 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
         return false;
       }
 
-      // Severity filter
+      // Severity filter - map priorityScore to severity
+      const severity = item.priorityScore >= 15 ? 'critical' : 
+                      item.priorityScore >= 10 ? 'high' : 
+                      item.priorityScore >= 5 ? 'medium' : 'low';
       if (!selectedFilters.severity.includes('all') && 
-          !selectedFilters.severity.includes(item.severity)) {
+          !selectedFilters.severity.includes(severity)) {
         return false;
       }
 
       return true;
     });
-  }, [citizenReports, socialMediaPosts, selectedFilters]);
+  }, [citizenReports, socialPosts, selectedFilters]);
 
   // Generate hotspots based on data clustering
   useEffect(() => {
@@ -121,14 +199,26 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
             };
           }
           
+          // Add severity field to item based on priorityScore
+          item.severity = item.priorityScore >= 15 ? 'critical' : 
+                         item.priorityScore >= 10 ? 'high' : 
+                         item.priorityScore >= 5 ? 'medium' : 'low';
+          
           locationClusters[key].items.push(item);
-          locationClusters[key].severity += item.priorityScore || (item.severity === 'critical' ? 15 : item.severity === 'high' ? 10 : 5);
-          locationClusters[key].hazardTypes.add(item.hazardType || item.hazardLabel);
+          // Use actual priorityScore if available, otherwise map severity to score
+          const priorityScore = item.priorityScore || (
+            item.severity === 'critical' ? 15 :
+            item.severity === 'high' ? 10 :
+            item.severity === 'medium' ? 7 :
+            item.severity === 'low' ? 3 : 5
+          );
+          locationClusters[key].severity += priorityScore;
+          locationClusters[key].hazardTypes.add(item.hazardType || item.hazardLabel || 'Other');
         }
       });
 
       const newHotspots = Object.values(locationClusters)
-        .filter(cluster => cluster.items.length >= 2) // Minimum 2 reports for hotspot
+        .filter(cluster => cluster.items.length >= 1) // Minimum 1 report for hotspot
         .map(cluster => ({
           ...cluster,
           id: `hotspot_${cluster.lat}_${cluster.lng}`,
@@ -138,6 +228,8 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
         }))
         .sort((a, b) => b.avgSeverity - a.avgSeverity);
 
+      // Hotspots generated
+      // Hotspot colors calculated
       setHotspots(newHotspots);
     };
 
@@ -162,8 +254,8 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
   const getHotspotColor = (avgSeverity, count) => {
     if (avgSeverity >= 15) return { color: '#DC2626', intensity: Math.min(count / 10, 1) };
     if (avgSeverity >= 10) return { color: '#EA580C', intensity: Math.min(count / 10, 1) };
-    if (avgSeverity >= 5) return { color: '#D97706', intensity: Math.min(count / 10, 1) };
-    return { color: '#059669', intensity: Math.min(count / 10, 1) };
+    if (avgSeverity >= 5) return { color: '#8B5CF6', intensity: Math.min(count / 10, 1) };
+    return { color: '#4F46E5', intensity: Math.min(count / 10, 1) };
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -215,29 +307,29 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
       <div className="w-80 bg-white shadow-lg flex flex-col">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4">
-          <h2 className="text-xl font-bold">INCOIS Dashboard</h2>
-          <p className="text-blue-100 text-sm">Real-time Ocean Hazard Monitoring</p>
+          <h2 className="text-xl font-bold">{tINCOISDashboard}</h2>
+          <p className="text-blue-100 text-sm">{tRealTimeOceanHazardMonitoring}</p>
         </div>
 
         {/* Real-time Stats */}
         <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Live Statistics</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">{tLiveStatistics}</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-blue-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-blue-600">{realTimeStats.totalReports}</div>
-              <div className="text-xs text-blue-600">Total Reports</div>
+              <div className="text-xs text-blue-600">{tTotalReports}</div>
             </div>
             <div className="bg-green-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-green-600">{realTimeStats.citizenReports}</div>
-              <div className="text-xs text-green-600">Citizen Reports</div>
+              <div className="text-xs text-green-600">{tCitizenReports}</div>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-purple-600">{realTimeStats.socialMediaPosts}</div>
-              <div className="text-xs text-purple-600">Social Media</div>
+              <div className="text-xs text-purple-600">{tSocialMedia}</div>
             </div>
             <div className="bg-red-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-red-600">{realTimeStats.criticalAlerts}</div>
-              <div className="text-xs text-red-600">Critical Alerts</div>
+              <div className="text-xs text-red-600">{tCriticalAlerts}</div>
             </div>
           </div>
         </div>
@@ -246,24 +338,24 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Time Range Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{tTimeRange}</label>
             <select
               value={selectedFilters.timeRange}
               onChange={(e) => handleFilterChange('timeRange', e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2 text-sm"
             >
-              <option value="1h">Last Hour</option>
-              <option value="6h">Last 6 Hours</option>
-              <option value="24h">Last 24 Hours</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="all">All Time</option>
+              <option value="1h">{tLastHour}</option>
+              <option value="6h">{tLast6Hours}</option>
+              <option value="24h">{tLast24Hours}</option>
+              <option value="7d">{tLast7Days}</option>
+              <option value="30d">{tLast30Days}</option>
+              <option value="all">{tAllTime}</option>
             </select>
           </div>
 
           {/* Hazard Types Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hazard Types</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{tHazardTypes}</label>
             <div className="space-y-2 max-h-32 overflow-y-auto">
               {['all', 'tsunami', 'storm_surge', 'high_waves', 'swell_surge', 'coastal_flooding', 'abnormal_tide'].map(type => (
                 <label key={type} className="flex items-center text-sm">
@@ -281,11 +373,11 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
 
           {/* Source Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Data Sources</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{tDataSources}</label>
             <div className="space-y-2">
               {[
-                { key: 'citizens', label: 'Citizen Reports', icon: '👥' },
-                { key: 'social', label: 'Social Media', icon: '📱' }
+                { key: 'citizens', label: tCitizenReportsLabel, icon: '👥' },
+                { key: 'social', label: tSocialMediaLabel, icon: '📱' }
               ].map(source => (
                 <label key={source.key} className="flex items-center text-sm">
                   <input
@@ -302,9 +394,9 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
 
           {/* Severity Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{tSeverity}</label>
             <div className="space-y-2">
-              {['all', 'critical', 'high', 'medium', 'low'].map(severity => (
+              {['all', tCritical, tHigh, tMedium, tLow].map(severity => (
                 <label key={severity} className="flex items-center text-sm">
                   <input
                     type="checkbox"
@@ -313,9 +405,9 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
                     className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                   />
                   <span className={`ml-2 capitalize ${
-                    severity === 'critical' ? 'text-red-600 font-medium' :
-                    severity === 'high' ? 'text-orange-600 font-medium' :
-                    severity === 'medium' ? 'text-yellow-600' : 'text-blue-600'
+                    severity === tCritical ? 'text-red-600 font-medium' :
+                    severity === tHigh ? 'text-orange-600 font-medium' :
+                    severity === tMedium ? 'text-purple-600' : 'text-indigo-600'
                   }`}>
                     {severity}
                   </span>
@@ -326,15 +418,15 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
 
           {/* Map Controls */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Map View</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{tMapView}</label>
             <select
               value={mapView}
               onChange={(e) => setMapView(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2 text-sm mb-2"
             >
-              <option value="satellite">Satellite</option>
-              <option value="street">Street</option>
-              <option value="terrain">Terrain</option>
+              <option value="satellite">{tSatellite}</option>
+              <option value="street">{tStreet}</option>
+              <option value="terrain">{tTerrain}</option>
             </select>
             
             <label className="flex items-center text-sm">
@@ -344,7 +436,7 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
                 onChange={(e) => setShowHeatmap(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 shadow-sm"
               />
-              <span className="ml-2">Show Heatmap</span>
+              <span className="ml-2">{tShowHeatmap}</span>
             </label>
           </div>
         </div>
@@ -357,14 +449,14 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-sm"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Data
+              {tExportData}
             </button>
             <button
               onClick={() => window.location.reload()}
               className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors flex items-center justify-center text-sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Dashboard
+              {tRefreshDashboard}
             </button>
           </div>
         </div>
@@ -377,14 +469,14 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Interactive Hazard Map
+                {tInteractiveHazardMap}
               </h3>
               <p className="text-sm text-gray-600">
-                {hotspots.length} active hotspots • {filteredData.length} reports in view
+                {hotspots.length} {tActiveHotspots} • {filteredData.length} {tReportsInView}
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Last updated:</span>
+              <span className="text-sm text-gray-600">{tLastUpdated}</span>
               <span className="text-sm font-medium">
                 {new Date().toLocaleTimeString()}
               </span>
@@ -398,8 +490,8 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative">
               {/* Map placeholder with hotspots */}
-              <div className="w-96 h-96 bg-green-200 rounded-lg relative shadow-lg">
-                <div className="absolute inset-2 bg-green-100 rounded">
+              <div className="w-96 h-96 bg-gray-200 rounded-lg relative shadow-lg">
+                <div className="absolute inset-2 bg-gray-100 rounded">
                   {/* Render Hotspots */}
                   {hotspots.slice(0, 10).map((hotspot, index) => {
                     const { color, intensity } = getHotspotColor(hotspot.avgSeverity, hotspot.count);
@@ -457,35 +549,53 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
 
           {/* Legend */}
           <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 z-10">
-            <h4 className="font-semibold text-gray-900 mb-3">Map Legend</h4>
+            <h4 className="font-semibold text-gray-900 mb-3">{tMapLegend}</h4>
             <div className="space-y-2">
+              {/* Hotspot Severity Colors */}
+              <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Hotspot Severity</div>
               <div className="flex items-center text-sm">
-                <div className="w-6 h-6 bg-red-600 rounded-full mr-2 flex items-center justify-center">
-                  <span className="text-white text-xs">5+</span>
+                <div className="w-6 h-6 rounded-full mr-2 flex items-center justify-center" style={{ backgroundColor: '#DC2626' }}>
+                  <span className="text-white text-xs font-bold">15+</span>
                 </div>
-                <span>Critical Hotspot (15+ severity)</span>
+                <span>Critical (15+ severity)</span>
               </div>
               <div className="flex items-center text-sm">
-                <div className="w-6 h-6 bg-orange-500 rounded-full mr-2 flex items-center justify-center">
-                  <span className="text-white text-xs">3+</span>
+                <div className="w-6 h-6 rounded-full mr-2 flex items-center justify-center" style={{ backgroundColor: '#EA580C' }}>
+                  <span className="text-white text-xs font-bold">10+</span>
                 </div>
-                <span>High Priority Hotspot (10+ severity)</span>
+                <span>High (10-14 severity)</span>
               </div>
               <div className="flex items-center text-sm">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span>Citizen Report</span>
+                <div className="w-6 h-6 rounded-full mr-2 flex items-center justify-center" style={{ backgroundColor: '#8B5CF6' }}>
+                  <span className="text-white text-xs font-bold">5+</span>
+                </div>
+                <span>Medium (5-9 severity)</span>
               </div>
               <div className="flex items-center text-sm">
-                <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span>Social Media Post</span>
+                <div className="w-6 h-6 rounded-full mr-2 flex items-center justify-center" style={{ backgroundColor: '#4F46E5' }}>
+                  <span className="text-white text-xs font-bold">&lt;5</span>
+                </div>
+                <span>Low (&lt;5 severity)</span>
+              </div>
+              
+              <div className="border-t pt-2 mt-2">
+                <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Report Types</div>
+                <div className="flex items-center text-sm">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                  <span>{tCitizenReportLegend}</span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                  <span>{tSocialMediaPostLegend}</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Heatmap Toggle Indicator */}
           {showHeatmap && (
-            <div className="absolute top-20 right-4 bg-yellow-100 border border-yellow-300 rounded-lg p-2 text-sm">
-              🔥 Heatmap Active
+            <div className="absolute top-20 right-4 bg-orange-100 border border-orange-300 rounded-lg p-2 text-sm">
+              🔥 {tHeatmapActive}
             </div>
           )}
         </div>
@@ -496,7 +606,7 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
         <div className="absolute right-4 top-20 bottom-4 w-80 bg-white rounded-lg shadow-lg z-20 overflow-hidden">
           <div className="bg-gray-50 p-4 border-b">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Hotspot Details</h3>
+              <h3 className="font-semibold text-gray-900">{tHotspotDetails}</h3>
               <button
                 onClick={() => setSelectedRegion(null)}
                 className="text-gray-400 hover:text-gray-600"
@@ -509,9 +619,9 @@ const InteractiveDashboardMap = ({ citizenReports = [], socialMediaPosts = [], o
             {/* Hotspot details would be rendered here */}
             <div className="space-y-4">
               <div>
-                <h4 className="font-medium text-gray-900">Location Information</h4>
+                <h4 className="font-medium text-gray-900">{tLocationInformation}</h4>
                 <p className="text-sm text-gray-600 mt-1">
-                  Detailed information about the selected hotspot would appear here.
+                  {tDetailedInformationAboutSelectedHotspot}
                 </p>
               </div>
             </div>

@@ -26,7 +26,7 @@ export const useSocialMediaFeed = (location = 'India', options = {}) => {
       setHasMore(newPosts.length >= (options.initialBatch || 50));
     } catch (err) {
       setError(err);
-      console.error('Error fetching initial posts:', err);
+      // Error fetching initial posts
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export const useSocialMediaFeed = (location = 'India', options = {}) => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error fetching more posts:', err);
+      // Error fetching more posts
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export const useSocialMediaFeed = (location = 'India', options = {}) => {
         setLastFetchTime(new Date().toISOString());
       }
     } catch (err) {
-      console.error('Error fetching real-time posts:', err);
+      // Error fetching real-time posts
     }
   }, [location, lastFetchTime, loading]);
 
@@ -98,7 +98,7 @@ export const useSocialMediaFeed = (location = 'India', options = {}) => {
       setTotalFetched(results.length);
     } catch (err) {
       setError(err);
-      console.error('Error searching hazard:', err);
+      // Error searching hazard
     } finally {
       setLoading(false);
     }

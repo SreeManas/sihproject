@@ -49,7 +49,7 @@ export async function uploadFile(file, userId) {
       await uploadBytes(thumbRef, thumb);
       thumbUrl = await getDownloadURL(thumbRef);
     } catch (thumbError) {
-      console.error("Could not create or upload thumbnail:", thumbError);
+      // Could not create or upload thumbnail
       // If thumbnail fails, proceed with the main file URL.
       thumbUrl = fileUrl; // Fallback to the main image URL
     }
