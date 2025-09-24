@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
 import viteCompression from 'vite-plugin-compression'
-import viteImagemin from 'vite-plugin-imagemin'
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   
@@ -11,12 +11,12 @@ export default defineConfig(({ mode }) => {
     // Production build optimizations
     build: {
       outDir: 'dist',
-      sourcemap: mode === 'development', // Only enable sourcemaps in development
+      sourcemap: mode === 'development',
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: mode === 'production', // Remove console.log only in production
-          drop_debugger: mode === 'production', // Remove debugger only in production
+          drop_console: mode === 'production',
+          drop_debugger: mode === 'production',
           pure_funcs: mode === 'production' ? ['console.log', 'console.info'] : []
         }
       },
@@ -25,7 +25,6 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             mapbox: ['mapbox-gl'],
-            firebase: ['firebase'],
             charts: ['recharts'],
             utils: ['axios', 'localforage'],
             ui: ['lucide-react']
@@ -36,13 +35,9 @@ export default defineConfig(({ mode }) => {
         }
       },
       chunkSizeWarningLimit: 1000,
-      reportCompressedSize: false,
-      // Firebase module resolution fix
-      commonjsOptions: {
-        include: [/node_modules\/firebase/],
-        transformMixedEsModules: true
-      }
+      reportCompressedSize: false
     },
+    
     
     // Development server configuration
     server: {
@@ -68,8 +63,9 @@ export default defineConfig(({ mode }) => {
       __APP_ENV__: JSON.stringify(env.NODE_ENV || 'development')
     },
     
+    // Performance optimizations
     optimizeDeps: {
-      include: ['react', 'react-dom', 'mapbox-gl', 'firebase/app', 'firebase/firestore', 'firebase/storage'],
+      include: ['react', 'react-dom', 'mapbox-gl'],
       exclude: ['@vitejs/plugin-react']
     },
     
