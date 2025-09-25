@@ -15,19 +15,38 @@ export default function LoginForm() {
 
   if (currentUser) {
     return (
-      <div className="p-4 border rounded bg-green-50 border-green-200">
-        <div className="mb-2 text-sm">
-          <div className="font-semibold">Welcome!</div>
-          <div>Email: {currentUser.email}</div>
-          <div>Role: {role}</div>
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg border border-green-200 p-6">
+        <div className="text-center mb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div className="text-lg font-bold text-green-900 mb-2">Welcome Back!</div>
+        </div>
+        <div className="space-y-2 text-sm text-gray-700 mb-6">
+          <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+            <span className="font-medium text-gray-600">Email:</span>
+            <span className="font-semibold text-gray-900">{currentUser.email}</span>
+          </div>
+          <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+            <span className="font-medium text-gray-600">Role:</span>
+            <span className="font-semibold text-green-600 capitalize">{role}</span>
+          </div>
           {currentUser.displayName && (
-            <div>Name: {currentUser.displayName}</div>
+            <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+              <span className="font-medium text-gray-600">Name:</span>
+              <span className="font-semibold text-gray-900">{currentUser.displayName}</span>
+            </div>
           )}
         </div>
         <button 
-          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+          className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
           onClick={logout}
         >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
           Logout
         </button>
       </div>
@@ -64,23 +83,34 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded bg-white shadow-sm">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 space-y-6">
       {location.state?.requireLogin && (
-        <div className="p-3 text-sm rounded bg-yellow-100 text-yellow-800 border border-yellow-200">
-          Please log in to access Alerts.
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="font-medium">Please log in to access Alerts.</span>
         </div>
       )}
       
-      <div className="font-semibold text-lg">Demo Auth</div>
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div className="text-2xl font-bold text-gray-900 mb-2">Demo Auth</div>
+        <div className="text-gray-600">Access your INCOIS SAMACHAR account</div>
+      </div>
       
       {/* Mode Toggle */}
-      <div className="flex gap-2 text-sm">
+      <div className="flex bg-gray-100 rounded-xl p-1">
         <button 
           type="button" 
-          className={`px-3 py-1 rounded transition-colors ${
+          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             mode === 'login' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 hover:bg-gray-200'
+              ? 'bg-white text-blue-600 shadow-md' 
+              : 'text-gray-600 hover:text-gray-900'
           }`} 
           onClick={() => setMode('login')}
         >
@@ -88,10 +118,10 @@ export default function LoginForm() {
         </button>
         <button 
           type="button" 
-          className={`px-3 py-1 rounded transition-colors ${
+          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             mode === 'register' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 hover:bg-gray-200'
+              ? 'bg-white text-blue-600 shadow-md' 
+              : 'text-gray-600 hover:text-gray-900'
           }`} 
           onClick={() => setMode('register')}
         >
@@ -104,7 +134,7 @@ export default function LoginForm() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full flex items-center justify-center gap-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl px-6 py-3 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover:shadow-md font-medium"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path 
@@ -124,65 +154,93 @@ export default function LoginForm() {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        {loading ? 'Signing in...' : 'Sign in with Google'}
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in...
+          </div>
+        ) : 'Sign in with Google'}
       </button>
 
       {/* Divider */}
       <div className="flex items-center gap-4">
         <div className="flex-1 border-t border-gray-300"></div>
-        <span className="text-sm text-gray-500">or</span>
+        <span className="text-sm font-medium text-gray-500 px-2">or continue with</span>
         <div className="flex-1 border-t border-gray-300"></div>
       </div>
 
       {/* Email/Password Form */}
-      <form onSubmit={submit} className="space-y-3">
-        <input 
-          className="border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
-          placeholder="Email" 
-          type="email"
-          value={email} 
-          onChange={e => setEmail(e.target.value)}
-          required
-          disabled={loading}
-        />
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+          <input 
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+            placeholder="Enter your email" 
+            type="email"
+            value={email} 
+            onChange={e => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
         
-        <input 
-          className="border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
-          placeholder="Password" 
-          type="password" 
-          value={password} 
-          onChange={e => setPassword(e.target.value)}
-          required
-          minLength={6}
-          disabled={loading}
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <input 
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+            placeholder="Enter your password" 
+            type="password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)}
+            required
+            minLength={6}
+            disabled={loading}
+          />
+        </div>
         
         {mode === 'register' && (
-          <select 
-            className="border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            value={demoRole} 
-            onChange={(e) => setDemoRole(e.target.value)}
-            disabled={loading}
-          >
-            <option value="citizen">Citizen</option>
-            <option value="analyst">Analyst</option>
-            <option value="official">Official</option>
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+            <select 
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+              value={demoRole} 
+              onChange={(e) => setDemoRole(e.target.value)}
+              disabled={loading}
+            >
+              <option value="citizen">👤 Citizen</option>
+              <option value="analyst">📊 Analyst</option>
+              <option value="official">🏛️ Official</option>
+            </select>
+          </div>
         )}
         
         <button 
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
-          {loading ? 'Loading...' : (mode === 'login' ? 'Login' : 'Register')}
+          {loading ? (
+            <div className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            </div>
+          ) : (mode === 'login' ? 'Sign In' : 'Create Account')}
         </button>
       </form>
 
       {/* Error Message */}
       {msg && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
-          {msg}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-medium">{msg}</span>
         </div>
       )}
     </div>

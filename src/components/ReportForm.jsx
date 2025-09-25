@@ -37,7 +37,7 @@ const TRANSLATIONS = {
   exifParseFailed: 'Failed to read EXIF data from this image. Please upload a different photo with EXIF metadata.',
   exifLoaded: 'Image with EXIF data loaded successfully!',
   submissionValidation: 'Please upload an image with EXIF metadata or remove the file to submit without a photo.',
-  capturePhoto: '📷 Capture Photo with Camera',
+  capturePhoto: '📷 Capture Photo or Video with Camera',
   orUploadFile: 'or upload a file from your device'
 };
 
@@ -296,9 +296,17 @@ export default function ReportForm() {
     e.preventDefault();
     
     // Validate that if a file is uploaded, it must have EXIF data
+    // However, browser-captured images are exempt from this requirement
     if (file && /^image\//i.test(file.type) && !validateExifData(exifData)) {
-      setStatus(tSubmissionValidation);
-      return;
+      // Check if this is a browser-captured image (more lenient validation)
+      if (file.capturedByBrowser) {
+        console.log('Accepting browser-captured image without EXIF data');
+        // Browser-captured images don't need EXIF validation
+      } else {
+        // Regular uploaded files must have EXIF data
+        setStatus(tSubmissionValidation);
+        return;
+      }
     }
     
     setLoading(true);
@@ -341,12 +349,22 @@ export default function ReportForm() {
   }
 
   return (
-    <div className="card p-4">
-      <h2 className="text-lg font-semibold mb-4">{tReportSubmission}</h2>
-      <form onSubmit={onSubmit} className="space-y-4">
+    <div className="card p-6 shadow-lg">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{tReportSubmission}</h2>
+        <p className="text-sm text-gray-600">Help us respond quickly by providing accurate information about the hazard you've observed.</p>
+      </div>
+      <form onSubmit={onSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm text-gray-600 mb-1">{tHazardType}</label>
-          <select className="input" value={hazardType} onChange={(e) => setHazardType(e.target.value)}>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              {tHazardType}
+            </span>
+          </label>
+          <select className="input shadow-sm hover:shadow-md transition-shadow duration-200" value={hazardType} onChange={(e) => setHazardType(e.target.value)}>
             {HAZARDS.map((h) => (
               <option key={h} value={h}>
                 {h}
@@ -355,9 +373,16 @@ export default function ReportForm() {
           </select>
         </div>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">{tDescription}</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {tDescription}
+            </span>
+          </label>
           <textarea
-            className="input"
+            className="input shadow-sm hover:shadow-md transition-shadow duration-200"
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -365,21 +390,31 @@ export default function ReportForm() {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">
-            {tPhotoVideo}
-            <span className="text-xs text-gray-500 block mt-1">
-              {tExifRequirement}
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {tPhotoVideo}
             </span>
           </label>
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm text-blue-800">{tExifRequirement}</span>
+            </div>
+          </div>
           
           {/* Camera Capture Button */}
-          <div className="mb-3">
+          <div className="mb-4">
             <button
               type="button"
               onClick={() => setShowCameraModal(true)}
-              className="btn btn-secondary w-full flex items-center justify-center gap-2"
+              className="btn btn-secondary w-full flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -388,75 +423,183 @@ export default function ReportForm() {
           </div>
           
           {/* File Upload Option */}
-          <div className="text-center mb-3">
-            <span className="text-sm text-gray-500">{tOrUploadFile}</span>
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500 font-medium">{tOrUploadFile}</span>
+            </div>
           </div>
           
-          <input className="input" type="file" accept="image/*,video/*" onChange={handleFile} />
+          <div className="relative">
+            <input className="input shadow-sm hover:shadow-md transition-shadow duration-200" type="file" accept="image/*,video/*" onChange={handleFile} />
+          </div>
           {thumbPreview && (
-            <div className="mt-2">
-              <img alt="preview" src={thumbPreview} className="max-w-xs rounded border" />
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-3">
+                <img alt="preview" src={thumbPreview} className="w-20 h-20 rounded-lg object-cover border-2 border-white shadow-sm" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">File Preview</p>
+                  <p className="text-xs text-gray-500">Click to remove or choose a different file</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFile(null);
+                    setThumbPreview(null);
+                    setExifData(null);
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
           
           {/* EXIF Verification Info */}
           {exifData && (
-            <div className="mt-3 p-3 bg-gray-50 rounded border">
-              <h4 className="text-sm font-medium mb-2">{tImageVerification}</h4>
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h4 className="text-sm font-semibold text-blue-900">{tImageVerification}</h4>
+              </div>
               
               {exifData.timestamp && (
-                <p className="text-xs text-gray-600 mb-1">
-                  <strong>{tPhotoTaken}</strong> {new Date(exifData.timestamp).toLocaleString()}
-                </p>
+                <div className="flex items-center gap-2 mb-2 p-2 bg-white rounded-lg border border-blue-100">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs text-gray-700">
+                    <strong>{tPhotoTaken}</strong> {new Date(exifData.timestamp).toLocaleString()}
+                  </span>
+                </div>
               )}
               
               {exifData.lat && exifData.lon && (
-                <p className="text-xs text-gray-600 mb-1">
-                  <strong>{tPhotoLocation}</strong> {exifData.lat.toFixed(4)}, {exifData.lon.toFixed(4)}
-                </p>
+                <div className="flex items-center gap-2 mb-2 p-2 bg-white rounded-lg border border-blue-100">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-xs text-gray-700">
+                    <strong>{tPhotoLocation}</strong> {exifData.lat.toFixed(4)}, {exifData.lon.toFixed(4)}
+                  </span>
+                </div>
               )}
               
               {delayedUpload && (
-                <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-800">
-                  ⚠️ This photo was taken more than {import.meta.env.VITE_EXIF_DELAY_HOURS || 3} hours ago
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-xs text-yellow-800">This photo was taken more than {import.meta.env.VITE_EXIF_DELAY_HOURS || 3} hours ago</span>
+                  </div>
                 </div>
               )}
               
               {exifLocationMatch === false && exifDistanceKm !== null && (
-                <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-800">
-                  📍 Photo location is {exifDistanceKm.toFixed(1)}km from your current location
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-xs text-red-800">Photo location is {exifDistanceKm.toFixed(1)}km from your current location</span>
+                  </div>
                 </div>
               )}
               
               {exifLocationMatch === true && (
-                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs text-green-800">
-                  ✅ Photo location matches your current location
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-xs text-green-800">Photo location matches your current location</span>
+                  </div>
                 </div>
               )}
               
               {exifData.lat && exifData.lon && (
-                <div className="mt-2">
-                  <label className="flex items-center text-xs">
+                <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={useExifLocation}
                       onChange={(e) => setUseExifLocation(e.target.checked)}
-                      className="mr-2"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    Use photo location instead of current GPS location
+                    <span className="ml-3 text-xs text-gray-700 font-medium">Use photo location instead of current GPS location</span>
                   </label>
                 </div>
               )}
             </div>
           )}
         </div>
-        <div className="text-sm text-gray-600">
-          <p className="text-xs text-blue-600">📍 Your GPS location will be automatically captured when you submit the report</p>
+        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-green-800">Location Privacy</p>
+              <p className="text-xs text-green-700">Your GPS location will be automatically captured when you submit the report</p>
+            </div>
+          </div>
         </div>
-        <button className="btn-primary" type="submit" disabled={loading}>
-          {loading ? 'Submitting…' : tSubmitReport}
+        
+        <button 
+          className="btn btn-primary w-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2" 
+          type="submit" 
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Submitting…
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              {tSubmitReport}
+            </>
+          )}
         </button>
-        {status && <p className="text-sm mt-2 text-gray-700">{status}</p>}
+        
+        {status && (
+          <div className={`mt-4 p-4 rounded-lg border ${
+            status.includes('successfully') || status.includes('Offline') 
+              ? 'bg-green-50 border-green-200 text-green-800' 
+              : status.includes('Error') 
+                ? 'bg-red-50 border-red-200 text-red-800' 
+                : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {status.includes('successfully') || status.includes('Offline') ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                ) : status.includes('Error') ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                )}
+              </svg>
+              <span className="text-sm font-medium">{status}</span>
+            </div>
+          </div>
+        )}
       </form>
       
       {/* Camera Capture Modal */}

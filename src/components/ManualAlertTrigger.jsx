@@ -12,6 +12,7 @@ export default function ManualAlertTrigger() {
   const [highRiskAreas, setHighRiskAreas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedArea, setSelectedArea] = useState('');
+  const [customLocation, setCustomLocation] = useState('');
   const [hazardType, setHazardType] = useState('Other');
   const [alertMessage, setAlertMessage] = useState('');
   const [status, setStatus] = useState('');
@@ -39,7 +40,8 @@ export default function ManualAlertTrigger() {
   };
 
   const handleActivateAlert = async () => {
-    if (!selectedArea || !hazardType) {
+    const finalArea = selectedArea === 'custom' ? customLocation : selectedArea;
+    if (!finalArea || !hazardType) {
       setStatus('Please select an area and hazard type');
       return;
     }
@@ -49,17 +51,18 @@ export default function ManualAlertTrigger() {
 
     try {
       await createAlert({
-        area: selectedArea,
+        area: finalArea,
         hazardType: hazardType,
-        message: alertMessage || `${hazardType} alert activated for ${selectedArea}`,
+        message: alertMessage || `${hazardType} alert activated for ${finalArea}`,
         severity: 'high',
         source: 'manual',
         triggeredBy: 'analyst'
       });
 
-      setStatus(`Alert successfully activated for ${selectedArea}`);
+      setStatus(`Alert successfully activated for ${finalArea}`);
       setAlertMessage('');
       setSelectedArea('');
+      setCustomLocation('');
       setHazardType('Other');
       
       // Refresh high risk areas
@@ -127,8 +130,8 @@ export default function ManualAlertTrigger() {
             <input
               type="text"
               placeholder="Enter custom location..."
-              value={selectedArea === 'custom' ? '' : selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
+              value={customLocation}
+              onChange={(e) => setCustomLocation(e.target.value)}
               className="input mt-2 w-full"
               disabled={loading}
             />
@@ -178,7 +181,7 @@ export default function ManualAlertTrigger() {
 
           <button
             onClick={handleActivateAlert}
-            disabled={loading || !selectedArea || !hazardType}
+            disabled={loading || !(selectedArea === 'custom' ? customLocation : selectedArea) || !hazardType}
             className="btn btn-danger btn-md flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

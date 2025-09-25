@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { useAuth } from '../components/auth/AuthProvider.jsx';
 import { useT } from '../hooks/useT.js';
+// Import the initialized Firebase instances
+import { db } from '../firebase/client.js';
 
 export default function FeedbackForm() {
   const [rating, setRating] = useState(0);
@@ -12,7 +14,23 @@ export default function FeedbackForm() {
   const [submitStatus, setSubmitStatus] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const { user } = getAuth();
+  const { currentUser } = useAuth();
+  const user = currentUser;
+  
+  // Debug: Log authentication state
+  console.log('FeedbackForm - Auth state:', { 
+    user: user ? { uid: user.uid, email: user.email } : null, 
+    currentUser: currentUser
+  });
+  
+  // Debug: Log Firebase connection
+  console.log('FeedbackForm - Firebase db instance:', db);
+  
+  // Check if Firebase is properly initialized
+  const isFirebaseReady = db && typeof db.collection === 'function';
+  if (!isFirebaseReady) {
+    console.error('Firebase is not properly initialized');
+  }
 
   // Translation hooks
   const tGeneralFeedback = useT("General Feedback");
@@ -61,13 +79,20 @@ export default function FeedbackForm() {
       setSubmitStatus(tPleaseLogin);
       return;
     }
+    
+    // Check if Firebase is properly initialized
+    if (!isFirebaseReady) {
+      setSubmitStatus('Firebase is not properly initialized. Please check your configuration.');
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitStatus('');
 
     try {
-      const db = getFirestore();
-      await addDoc(collection(db, 'feedback'), {
+      console.log('Submitting feedback for user:', user.uid, user.email);
+      
+      const feedbackData = {
         userId: user.uid,
         userEmail: user.email,
         rating: rating,
@@ -76,7 +101,12 @@ export default function FeedbackForm() {
         createdAt: serverTimestamp(),
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      console.log('Feedback data:', feedbackData);
+      
+      const docRef = await addDoc(collection(db, 'feedback'), feedbackData);
+      console.log('Feedback submitted successfully with ID:', docRef.id);
 
       setIsSubmitted(true);
       setSubmitStatus(tThankYouFeedback);
@@ -93,7 +123,23 @@ export default function FeedbackForm() {
 
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      setSubmitStatus(tErrorSubmitting);
+      
+      // Provide more specific error messages
+      let errorMessage = tErrorSubmitting;
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Permission denied. Please check your account permissions.';
+      } else if (error.code === 'unauthenticated') {
+        errorMessage = 'Authentication error. Please log in again.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (error.code === 'invalid-argument') {
+        errorMessage = 'Invalid data provided. Please check your input.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      setSubmitStatus(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

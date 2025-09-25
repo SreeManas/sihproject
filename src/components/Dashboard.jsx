@@ -382,33 +382,37 @@ export default function Dashboard() {
     <>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Header Section */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="mb-4 sm:mb-0">
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">IS</span>
+        <div className="bg-gradient-to-r from-white via-white to-blue-50 shadow-xl border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                    <span className="text-white font-bold text-lg">IS</span>
                   </div>
-                  {tDashboard}
-                </h1>
-                <p className="text-gray-600 mt-1">{tRealTimeMonitoring}</p>
+                  <div>
+                    <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-1">{tDashboard}</h1>
+                    <p className="text-gray-600 text-lg">{tRealTimeMonitoring}</p>
+                  </div>
+                </div>
               </div>
               
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-blue-700">
-                      {filteredSocial.length} {tActiveHotspots}
-                    </span>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+                    <span className="text-sm font-semibold text-blue-800">Live</span>
+                  </div>
+                  <div className="h-6 w-px bg-blue-300"></div>
+                  <div className="text-sm font-medium text-blue-700">
+                    <span className="font-bold text-blue-900">{filteredSocial.length}</span> {tActiveHotspots}
                   </div>
                 </div>
                 
                 <button
                   onClick={refreshSocial}
                   disabled={loadingSocial}
-                  className="btn btn-primary btn-md flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {loadingSocial ? (
                     <>
@@ -431,139 +435,165 @@ export default function Dashboard() {
             </div>
             
             {/* Filters Section */}
-            <div className="mt-6 flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">{tTimeRange}</label>
-                <select 
-                  value={dateRange} 
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="select w-32"
-                >
-                  <option value="1h">{tLastHour}</option>
-                  <option value="6h">{tLast6Hours}</option>
-                  <option value="24h">{tLast24Hours}</option>
-                  <option value="7d">{tLast7Days}</option>
-                  <option value="30d">{tLast30Days}</option>
-                </select>
+            <div className="mt-8">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {tTimeRange}
+                      </label>
+                      <select 
+                        value={dateRange} 
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <option value="1h">{tLastHour}</option>
+                        <option value="6h">{tLast6Hours}</option>
+                        <option value="24h">{tLast24Hours}</option>
+                        <option value="7d">{tLast7Days}</option>
+                        <option value="30d">{tLast30Days}</option>
+                      </select>
+                    </div>
+
+                    {hazardTypes.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          {tHazardType}
+                        </label>
+                        <select 
+                          value={hazardFilter} 
+                          onChange={(e) => setHazardFilter(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                          <option value="all">{tAllTypes}</option>
+                          {hazardTypes.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {platforms.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9c-5 0-9-4-9-9s4-9 9-9" />
+                          </svg>
+                          {tSource}
+                        </label>
+                        <select 
+                          value={sourceFilter} 
+                          onChange={(e) => setSourceFilter(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                          <option value="all">{tAllSources}</option>
+                          {platforms.map(platform => (
+                            <option key={platform} value={platform}>{platform}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              {hazardTypes.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700">{tHazardType}</label>
-                  <select 
-                    value={hazardFilter} 
-                    onChange={(e) => setHazardFilter(e.target.value)}
-                    className="select w-40"
-                  >
-                    <option value="all">{tAllTypes}</option>
-                    {hazardTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {platforms.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700">{tSource}</label>
-                  <select 
-                    value={sourceFilter} 
-                    onChange={(e) => setSourceFilter(e.target.value)}
-                    className="select w-32"
-                  >
-                    <option value="all">{tAllSources}</option>
-                    {platforms.map(platform => (
-                      <option key={platform} value={platform}>{platform}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 relative flex">
+        <div className="flex-1 relative flex bg-gradient-to-br from-gray-50 to-gray-100">
           {/* Map Container */}
           <div className="flex-1 relative">
             <div
               id="map-root"
               ref={containerRef}
-              className="w-full h-full"
-              style={{ minHeight: "600px" }}
+              className="w-full h-full rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+              style={{ minHeight: "700px" }}
             />
             
             {/* Status Indicators */}
-            <div className="absolute top-4 left-4 z-10 space-y-2">
+            <div className="absolute top-6 left-6 z-10 space-y-3">
               {!mapLoaded && (
-                <div className="alert alert-info flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 px-4 py-3 flex items-center gap-3">
+                  <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>{tMapLoading}</span>
+                  <span className="text-sm font-medium text-gray-700">{tMapLoading}</span>
                 </div>
               )}
               
               {loadingSocial && (
-                <div className="alert alert-info flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 px-4 py-3 flex items-center gap-3">
+                  <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>{tLoadingSocialData}</span>
+                  <span className="text-sm font-medium text-gray-700">{tLoadingSocialData}</span>
                 </div>
               )}
             </div>
 
             {mapError && (
-              <div className="absolute top-4 right-4 z-10">
-                <div className="alert alert-danger max-w-sm">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="absolute top-6 right-6 z-10">
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl shadow-lg max-w-sm">
+                  <div className="flex items-center gap-3">
+                    <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>❌ {mapError}</span>
+                    <span className="font-medium">❌ {mapError}</span>
                   </div>
                 </div>
               </div>
             )}
 
             {socialPosts.length === 0 && !loadingSocial && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-                <div className="alert alert-secondary">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+                <div className="bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-700 px-6 py-4 rounded-xl shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
-                    <span>{tNoSocialDataAvailable}</span>
+                    <span className="font-medium">{tNoSocialDataAvailable}</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Legend */}
-            <div className="absolute bottom-4 right-4 z-10">
-              <div className="card bg-white/95 backdrop-blur-sm">
-                <div className="card-header py-3">
-                  <h3 className="text-sm font-semibold text-gray-900">{tPriorityLegend}</h3>
+            <div className="absolute bottom-6 right-6 z-10">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 p-1">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    {tPriorityLegend}
+                  </h3>
                 </div>
-                <div className="card-body py-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
-                    <span className="text-xs text-gray-600">{tCritical}</span>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-red-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-gray-700">{tCritical}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="text-xs text-gray-600">{tHigh}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-orange-500 shadow-sm"></div>
+                    <span className="text-sm font-medium text-gray-700">{tHigh}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-purple-600"></div>
-                    <span className="text-xs text-gray-600">{tMedium}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-purple-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-gray-700">{tMedium}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
-                    <span className="text-xs text-gray-600">{tLow}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full bg-indigo-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-gray-700">{tLow}</span>
                   </div>
                 </div>
               </div>
@@ -571,26 +601,37 @@ export default function Dashboard() {
           </div>
           
           {/* Sidebar */}
-          <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
-            <EmergencyContacts />
+          <div className="w-80 bg-white rounded-2xl shadow-xl border border-gray-200 p-6 overflow-y-auto m-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Emergency Contacts
+              </h3>
+              <EmergencyContacts />
+            </div>
             
-            {/* Additional sidebar content can go here */}
-            <div className="mt-6">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">{tSystemStatus}</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">{tActiveReports}</span>
-                    <span className="font-medium text-blue-900">{filteredSocial.length}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">{tDataSources}</span>
-                    <span className="font-medium text-blue-900">4 {tActive}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">{tLastUpdate}</span>
-                    <span className="font-medium text-blue-900">{tJustNow}</span>
-                  </div>
+            {/* System Status */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+              <h4 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                {tSystemStatus}
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">{tActiveReports}</span>
+                  <span className="font-bold text-blue-900 bg-blue-100 px-2 py-1 rounded-md">{filteredSocial.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">{tDataSources}</span>
+                  <span className="font-bold text-blue-900 bg-blue-100 px-2 py-1 rounded-md">4 {tActive}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">{tLastUpdate}</span>
+                  <span className="font-bold text-blue-900 bg-blue-100 px-2 py-1 rounded-md">{tJustNow}</span>
                 </div>
               </div>
             </div>
