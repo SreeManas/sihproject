@@ -4,34 +4,40 @@ import { useT } from '../hooks/useT.js';
 
 // Translation keys for static strings
 const TRANSLATIONS = {
-  alert: 'Alert',
-  active: 'ACTIVE',
+  emergencyAlerts: 'Emergency Alerts',
+  activeAlerts: 'Active Alerts',
+  viewAllAlerts: 'View All Alerts',
+  dismiss: 'Dismiss',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
   issued: 'Issued',
   by: 'by',
-  emergencyContacts: '📞 Emergency Contacts',
-  reportIncident: '📝 Report Incident',
-  staySafe: 'Stay safe and follow official instructions',
   unknownTime: 'Unknown time',
   justNow: 'Just now',
-  ago: 'ago'
+  ago: 'ago',
+  staySafe: 'Stay safe and follow official instructions'
 };
 
 export default function CitizenAlertBanner() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
+  const [dismissedBanners, setDismissedBanners] = useState(new Set());
   
   // Translation hooks
-  const tAlert = useT(TRANSLATIONS.alert);
-  const tActive = useT(TRANSLATIONS.active);
+  const tEmergencyAlerts = useT(TRANSLATIONS.emergencyAlerts);
+  const tActiveAlerts = useT(TRANSLATIONS.activeAlerts);
+  const tViewAllAlerts = useT(TRANSLATIONS.viewAllAlerts);
+  const tDismiss = useT(TRANSLATIONS.dismiss);
+  const tHigh = useT(TRANSLATIONS.high);
+  const tMedium = useT(TRANSLATIONS.medium);
+  const tLow = useT(TRANSLATIONS.low);
   const tIssued = useT(TRANSLATIONS.issued);
   const tBy = useT(TRANSLATIONS.by);
-  const tEmergencyContacts = useT(TRANSLATIONS.emergencyContacts);
-  const tReportIncident = useT(TRANSLATIONS.reportIncident);
-  const tStaySafe = useT(TRANSLATIONS.staySafe);
   const tUnknownTime = useT(TRANSLATIONS.unknownTime);
   const tJustNow = useT(TRANSLATIONS.justNow);
   const tAgo = useT(TRANSLATIONS.ago);
+  const tStaySafe = useT(TRANSLATIONS.staySafe);
 
   useEffect(() => {
     loadActiveAlerts();
@@ -53,20 +59,36 @@ export default function CitizenAlertBanner() {
     }
   };
 
-  const dismissAlert = (alertId) => {
-    setDismissedAlerts(prev => new Set([...prev, alertId]));
+  const dismissBanner = (severity) => {
+    setDismissedBanners(prev => new Set([...prev, severity]));
   };
 
   const getSeverityColor = (severity) => {
     switch (severity) {
       case 'high':
-        return 'bg-red-600 border-red-700';
+        return {
+          bg: 'bg-red-600 border-red-700',
+          text: 'text-red-100',
+          badge: 'bg-red-700 text-red-100'
+        };
       case 'medium':
-        return 'bg-orange-500 border-orange-600';
+        return {
+          bg: 'bg-orange-500 border-orange-600',
+          text: 'text-orange-100',
+          badge: 'bg-orange-600 text-orange-100'
+        };
       case 'low':
-        return 'bg-yellow-500 border-yellow-600';
+        return {
+          bg: 'bg-yellow-500 border-yellow-600',
+          text: 'text-yellow-100',
+          badge: 'bg-yellow-600 text-yellow-100'
+        };
       default:
-        return 'bg-blue-500 border-blue-600';
+        return {
+          bg: 'bg-blue-500 border-blue-600',
+          text: 'text-blue-100',
+          badge: 'bg-blue-600 text-blue-100'
+        };
     }
   };
 
@@ -103,102 +125,95 @@ export default function CitizenAlertBanner() {
     return date.toLocaleDateString();
   };
 
-  // Filter out dismissed alerts
-  const visibleAlerts = alerts.filter(alert => !dismissedAlerts.has(alert.id));
+  // Group alerts by severity and count
+  const alertCounts = {
+    high: alerts.filter(alert => alert.severity === 'high').length,
+    medium: alerts.filter(alert => alert.severity === 'medium').length,
+    low: alerts.filter(alert => alert.severity === 'low').length
+  };
 
-  if (loading || visibleAlerts.length === 0) {
+  // Only show banners for high and medium severity alerts
+  const visibleSeverities = ['high', 'medium'].filter(severity => 
+    alertCounts[severity] > 0 && !dismissedBanners.has(severity)
+  );
+
+  if (loading || visibleSeverities.length === 0) {
     return null;
   }
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 space-y-2 p-4">
-      {visibleAlerts.map((alert) => (
-        <div
-          key={alert.id}
-          className={`${getSeverityColor(alert.severity)} text-white rounded-lg shadow-lg border-2 transform transition-all duration-300 animate-pulse`}
-          role="alert"
-        >
-          <div className="flex items-start justify-between p-4">
-            <div className="flex items-start space-x-3 flex-1">
-              <div className="text-2xl">
-                {getSeverityIcon(alert.hazardType)}
+      {visibleSeverities.map((severity) => {
+        const severityStyle = getSeverityColor(severity);
+        const count = alertCounts[severity];
+        const latestAlert = alerts
+          .filter(alert => alert.severity === severity)
+          .sort((a, b) => {
+            const aTime = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+            const bTime = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+            return bTime - aTime;
+          })[0];
+
+        return (
+          <div
+            key={severity}
+            className={`${severityStyle.bg} text-white rounded-lg shadow-lg border-2 transform transition-all duration-300`}
+            role="alert"
+          >
+            <div className="flex items-center justify-between p-3">
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="text-xl">
+                  {getSeverityIcon(latestAlert?.hazardType)}
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-semibold text-sm">
+                      {severity === 'high' ? tEmergencyAlerts : tActiveAlerts}
+                    </h4>
+                    <span className={`${severityStyle.badge} px-2 py-1 rounded text-xs font-medium`}>
+                      {count} {count === 1 ? 'alert' : 'alerts'}
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs opacity-90 mt-1">
+                    Latest: {latestAlert?.area} • {tIssued} {formatTime(latestAlert?.createdAt)}
+                  </div>
+                </div>
               </div>
               
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <h4 className="font-semibold text-lg">
-                    {alert.hazardType} Alert
-                  </h4>
-                  <span className="bg-white/20 px-2 py-1 rounded text-xs font-medium">
-                    {alert.severity?.toUpperCase() || tActive}
-                  </span>
-                </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    // Navigate to dashboard to view all alerts
+                    window.location.href = '/dashboard';
+                  }}
+                  className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors"
+                >
+                  {tViewAllAlerts}
+                </button>
                 
-                <p className="text-white/90 text-sm mb-2">
-                  <span className="font-medium">{alert.area}</span>
-                </p>
-                
-                {alert.message && (
-                  <p className="text-white/90 text-sm mb-2">
-                    {alert.message}
-                  </p>
-                )}
-                
-                <div className="flex items-center text-xs text-white/80">
-                  <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <button
+                  onClick={() => dismissBanner(severity)}
+                  className="p-1 text-white/80 hover:text-white transition-colors"
+                  aria-label={tDismiss}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span>
-                    {tIssued} {formatTime(alert.createdAt)}
-                    {alert.createdByEmail && ` ${tBy} ${alert.createdByEmail}`}
-                  </span>
-                </div>
+                </button>
               </div>
             </div>
             
-            <button
-              onClick={() => dismissAlert(alert.id)}
-              className="ml-4 text-white/80 hover:text-white transition-colors"
-              aria-label="Dismiss alert"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Action buttons */}
-          <div className="border-t border-white/20 px-4 py-3 bg-black/10">
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    // Open emergency contacts
-                    window.location.href = '#emergency-contacts';
-                  }}
-                  className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors"
-                >
-                  {tEmergencyContacts}
-                </button>
-                
-                <button
-                  onClick={() => {
-                    // Navigate to report form
-                    window.location.href = '/report';
-                  }}
-                  className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors"
-                >
-                  {tReportIncident}
-                </button>
-              </div>
-              
-              <div className="text-xs text-white/70">
+            {/* Footer */}
+            <div className="border-t border-white/20 px-3 py-2 bg-black/10">
+              <div className="text-xs text-white/70 text-center">
                 {tStaySafe}
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

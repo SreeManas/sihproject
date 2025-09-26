@@ -388,6 +388,65 @@ const testCameraCompatibility = async () => {
   return testResults;
 };
 
+// FIX 3: Enhanced video display with WebM fallback handling
+const VideoDisplay = ({ recordedVideo }) => {
+  if (!recordedVideo) return null;
+  
+  // If playback failed, show download only
+  if (recordedVideo.playbackFailed) {
+    return (
+      <div className="text-center p-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-yellow-800 font-medium mb-2">Video Playback Not Supported</p>
+          <p className="text-yellow-700 text-sm mb-3">
+            This browser cannot play the recorded video format, but you can download it.
+          </p>
+          <a
+            href={recordedVideo.url}
+            download={recordedVideo.file.name}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Video ({recordedVideo.file.name})
+          </a>
+        </div>
+      </div>
+    );
+  }
+  
+  // Normal playback
+  return (
+    <div className="text-center p-4">
+      <video
+        key={recordedVideo.url}
+        src={recordedVideo.url}
+        controls
+        playsInline
+        preload="metadata"
+        className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg border-2 border-white"
+        onError={(e) => {
+          console.error('Video element error:', e.target.error);
+        }}
+      >
+        <p>Your browser does not support video playback.</p>
+      </video>
+      
+      {/* Always provide download option */}
+      <div className="mt-2">
+        <a
+          href={recordedVideo.url}
+          download={recordedVideo.file.name}
+          className="text-blue-600 hover:text-blue-800 text-sm underline"
+        >
+          Download video
+        </a>
+      </div>
+    </div>
+  );
+};
+
 const TRANSLATIONS = {
   cameraCapture: 'Camera Capture',
   startCamera: 'Start Camera',
@@ -857,7 +916,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
     }
   };
 
-  // Start video recording
+  // FIX 1: Force MP4 format instead of WebM for better compatibility
   const startRecording = async () => {
     if (!streamRef.current) {
       setError('Camera not started');
@@ -866,61 +925,152 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
 
     try {
       const chunks = [];
+      setRecordedChunks([]);
       
-      // Try different MIME types with fallback support
-      let mimeType = 'video/webm;codecs=vp9';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm;codecs=vp8';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'video/webm';
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/mp4';
+      // CRITICAL: Prioritize MP4 over WebM for better playback compatibility
+      const getPlaybackFriendlyMimeType = () => {
+        const preferredTypes = [
+          'video/mp4',                    // Best compatibility
+          'video/mp4;codecs=avc1.42E01E', // H.264 baseline
+          'video/webm;codecs=vp8',        // Fallback WebM
+          'video/webm'                    // Last resort
+        ];
+        
+        for (const type of preferredTypes) {
+          if (MediaRecorder.isTypeSupported(type)) {
+            console.log('Selected MIME type for recording:', type);
+            return type;
           }
         }
-      }
+        
+        // If nothing works, try default
+        return 'video/webm';
+      };
+
+      const mimeType = getPlaybackFriendlyMimeType();
       
       const recorder = new MediaRecorder(streamRef.current, {
         mimeType: mimeType,
-        videoBitsPerSecond: 2500000 // Limit bitrate to reduce file size
+        videoBitsPerSecond: 800000  // Moderate bitrate for good quality/compatibility balance
       });
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           chunks.push(event.data);
-          
-          // Check if we're approaching 10MB limit
-          const totalSize = chunks.reduce((total, chunk) => total + chunk.size, 0);
-          if (totalSize > 10 * 1024 * 1024) { // 10MB
-            recorder.stop();
-            setError('Video recording stopped: Reached 10MB limit');
-          }
+          console.log('Chunk added:', event.data.size, 'bytes');
         }
       };
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType });
-        if (blob.size > 0) {
-          const url = URL.createObjectURL(blob);
-          const fileExtension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-          const file = new File([blob], `video-${new Date().getTime()}.${fileExtension}`, {
-            type: mimeType,
-            lastModified: new Date().getTime()
-          });
-          setRecordedVideo({ file, url });
-          setRecordedChunks([]);
-          setIsRecording(false);
-          stopCamera(); // Stop camera after recording
+      recorder.onstop = async () => {
+        console.log('Recording stopped, processing', chunks.length, 'chunks');
+        
+        if (chunks.length === 0) {
+          setError('No video data recorded');
+          return;
         }
+
+        // Create blob with the same MIME type used for recording
+        const blob = new Blob(chunks, { type: mimeType });
+        console.log('Blob created:', blob.size, 'bytes, type:', blob.type);
+
+        if (blob.size === 0) {
+          setError('Empty video file');
+          return;
+        }
+
+        // FIX 2: Test browser's ability to play this specific blob
+        const url = URL.createObjectURL(blob);
+        
+        // Create a hidden test video element
+        const testVideo = document.createElement('video');
+        testVideo.style.display = 'none';
+        testVideo.preload = 'metadata';
+        document.body.appendChild(testVideo);
+        
+        const testPlayback = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            document.body.removeChild(testVideo);
+            reject(new Error('Playback test timeout'));
+          }, 10000);
+          
+          testVideo.onloadedmetadata = () => {
+            clearTimeout(timeout);
+            console.log('Playback test SUCCESS - duration:', testVideo.duration);
+            document.body.removeChild(testVideo);
+            
+            if (testVideo.duration > 0) {
+              resolve(true);
+            } else {
+              reject(new Error('Video has no duration'));
+            }
+          };
+          
+          testVideo.onerror = (e) => {
+            clearTimeout(timeout);
+            console.error('Playback test FAILED:', testVideo.error);
+            document.body.removeChild(testVideo);
+            reject(new Error('Cannot play video: ' + (testVideo.error?.message || 'Unknown error')));
+          };
+          
+          testVideo.src = url;
+          testVideo.load();
+        });
+
+        try {
+          await testPlayback;
+          
+          // Success - create file and set state
+          const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const filename = `video-${Date.now()}.${extension}`;
+          
+          const file = new File([blob], filename, {
+            type: mimeType,
+            lastModified: Date.now()
+          });
+
+          console.log('Video ready for playback:', filename);
+          setRecordedVideo({ file, url });
+          setIsRecording(false);
+          stopCamera();
+          
+        } catch (testError) {
+          console.error('Video playback test failed:', testError.message);
+          URL.revokeObjectURL(url);
+          
+          // Offer download instead of playback
+          setError(`Video recorded but cannot play in browser: ${testError.message}. Download option will be provided.`);
+          
+          // Still create the file for download
+          const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const filename = `video-${Date.now()}.${extension}`;
+          const file = new File([blob], filename, { type: mimeType });
+          
+          // Create new URL for download
+          const downloadUrl = URL.createObjectURL(blob);
+          setRecordedVideo({ 
+            file, 
+            url: downloadUrl, 
+            playbackFailed: true 
+          });
+          setIsRecording(false);
+          stopCamera();
+        }
+      };
+
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event.error);
+        setError('Recording error: ' + (event.error?.message || 'Unknown'));
       };
 
       setMediaRecorder(recorder);
-      setRecordedChunks(chunks);
-      recorder.start(1000); // Collect data every second
+      recorder.start(1000);
       setIsRecording(true);
       
+      console.log('Recording started with:', mimeType);
+      
     } catch (error) {
-      console.error('Error starting recording:', error);
-      setError('Failed to start video recording: ' + error.message);
+      console.error('Failed to start recording:', error);
+      setError('Recording failed: ' + error.message);
     }
   };
 
@@ -974,9 +1124,93 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
     };
   }, []);
 
+  // State for data URL fallback
+  const [videoDataURL, setVideoDataURL] = useState('');
+  
+  // Debug recordedVideo state changes
+  useEffect(() => {
+    if (recordedVideo) {
+      console.log('recordedVideo state updated:', recordedVideo);
+      
+      // Test if the URL is valid by creating a test video element
+      const testVideo = document.createElement('video');
+      testVideo.src = recordedVideo.url;
+      testVideo.onloadedmetadata = () => {
+        console.log('Video URL is valid - metadata loaded successfully');
+      };
+      testVideo.onerror = (e) => {
+        console.error('Video URL is invalid - failed to load metadata:', e);
+        // Try Data URL fallback
+        createDataURLFromBlob(recordedVideo.file)
+          .then(dataUrl => {
+            console.log('Data URL created successfully');
+            setVideoDataURL(dataUrl);
+          })
+          .catch(err => {
+            console.error('Data URL creation failed:', err);
+          });
+      };
+    }
+  }, [recordedVideo]);
+
+  // DEBUGGING: Add these console logs to track the issue
+  const debugVideoState = () => {
+    if (recordedVideo) {
+      console.log('=== VIDEO DEBUG INFO ===');
+      console.log('File:', recordedVideo.file);
+      console.log('File size:', recordedVideo.file?.size);
+      console.log('File type:', recordedVideo.file?.type);
+      console.log('URL:', recordedVideo.url);
+      console.log('URL valid:', recordedVideo.url?.startsWith('blob:'));
+      
+      // Test URL directly
+      fetch(recordedVideo.url)
+        .then(response => {
+          console.log('URL fetch test:', response.status, response.headers.get('content-type'));
+          return response.blob();
+        })
+        .then(blob => {
+          console.log('Blob from URL:', blob.size, blob.type);
+        })
+        .catch(err => {
+          console.error('URL fetch failed:', err);
+        });
+    }
+  };
+
+  // EMERGENCY WORKAROUND: Save video as downloadable file if playback fails
+  const handleVideoPlaybackFailure = (recordedVideo) => {
+    console.log('Video playback failed, offering download instead');
+    
+    // Create download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = recordedVideo.url;
+    downloadLink.download = recordedVideo.file.name;
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    
+    // Auto-download or show download button
+    const shouldAutoDownload = confirm('Video playback failed. Would you like to download the video file instead?');
+    if (shouldAutoDownload) {
+      downloadLink.click();
+    }
+    
+    document.body.removeChild(downloadLink);
+  };
+
+  // FALLBACK: Use FileReader to convert blob to data URL
+  const createDataURLFromBlob = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
           <h3 className="text-lg font-semibold">{tCameraCapture}</h3>
@@ -989,7 +1223,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
         </div>
 
         {/* Camera Content */}
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto flex-1 scrollbar-custom">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               <p className="font-medium">Camera Error</p>
@@ -1101,7 +1335,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
           </div>
 
           {/* Camera Preview or Captured Media */}
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden mb-6 border border-gray-200 shadow-inner" style={{ minHeight: '320px' }}>
+          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden mb-4 border border-gray-200 shadow-inner" style={{ minHeight: '200px', maxHeight: '280px' }}>
             {capturedImage ? (
               // Show captured image
               <div className="text-center p-4">
@@ -1109,7 +1343,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
                   <img
                     src={capturedImage.url}
                     alt={tCapturedPhoto}
-                    className="max-w-full max-h-80 mx-auto rounded-lg shadow-lg border-2 border-white"
+                    className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg border-2 border-white"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 rounded-lg"></div>
                 </div>
@@ -1121,32 +1355,8 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
                 </div>
               </div>
             ) : recordedVideo ? (
-              // Show recorded video
-              <div className="text-center p-4">
-                <div className="inline-block relative group">
-                  <video
-                    src={recordedVideo.url}
-                    controls
-                    className="max-w-full max-h-80 mx-auto rounded-lg shadow-lg border-2 border-white"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 rounded-lg"></div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                      <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                    </svg>
-                    {tVideoRecorded}
-                  </div>
-                  <div className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
-                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    {tMaxVideoSize}
-                  </div>
-                </div>
-              </div>
+              // Use new VideoDisplay component
+              <VideoDisplay recordedVideo={recordedVideo} />
             ) : (
               // Always render video element but hide it when camera is not active
               <div className="text-center p-4 h-full flex flex-col justify-center">
@@ -1155,11 +1365,11 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
                   autoPlay
                   playsInline
                   muted
-                  className={`max-w-full max-h-80 mx-auto rounded-lg shadow-lg border-2 border-gray-300 bg-black ${!isCameraActive ? 'hidden' : ''}`}
+                  className={`max-w-full max-h-48 mx-auto rounded-lg shadow-lg border-2 border-gray-300 bg-black ${!isCameraActive ? 'hidden' : ''}`}
                   style={{ 
                     width: '100%',
                     height: 'auto',
-                    maxHeight: '320px',
+                    maxHeight: '200px',
                     objectFit: 'cover'
                   }}
                 />
@@ -1211,12 +1421,12 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Control Buttons */}
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center min-h-[50px] items-center py-2 border-t border-gray-100 bg-gray-50 -mx-4 px-4">
             {!isCameraActive && !capturedImage && !recordedVideo && (
               <button
                 onClick={startCamera}
                 disabled={loading}
-                className="btn btn-primary flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
               >
                 {loading ? (
                   <>
@@ -1241,7 +1451,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
               <button
                 onClick={capturePhoto}
                 disabled={captureLoading}
-                className="btn btn-success flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="btn btn-success flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200"
               >
                 {captureLoading ? (
                   <>
@@ -1266,7 +1476,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
             {isCameraActive && mode === 'video' && !isRecording && (
               <button
                 onClick={startRecording}
-                className="btn btn-danger flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="btn btn-danger flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -1278,7 +1488,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
             {isCameraActive && mode === 'video' && isRecording && (
               <button
                 onClick={stopRecording}
-                className="btn btn-danger flex items-center gap-2 animate-pulse shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="btn btn-danger flex items-center gap-2 px-4 py-2 text-sm animate-pulse shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1291,7 +1501,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
             {isCameraActive && (
               <button
                 onClick={stopCamera}
-                className="btn btn-outline flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                className="btn btn-outline flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1305,7 +1515,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
               <>
                 <button
                   onClick={retakePhoto}
-                  className="btn btn-secondary flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                  className="btn btn-secondary flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1314,7 +1524,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
                 </button>
                 <button
                   onClick={usePhoto}
-                  className="btn btn-primary flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1328,7 +1538,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
               <>
                 <button
                   onClick={retakeVideo}
-                  className="btn btn-secondary flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                  className="btn btn-secondary flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1337,7 +1547,7 @@ export default function CameraCapture({ onPhotoCaptured, onClose }) {
                 </button>
                 <button
                   onClick={useVideo}
-                  className="btn btn-primary flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

@@ -8,6 +8,7 @@ import { aggregateToHeatFeatures, postsToGeoJSON } from "../utils/socialHotspotU
 import socialMap from "../services/socialMapService.js";
 import EmergencyContacts from "./EmergencyContacts.jsx";
 import BotpressChatbot from "./BotpressChatbot.jsx";
+import AlertDashboard from "./AlertDashboard.jsx";
 import { useT } from "../hooks/useT.js";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
@@ -509,6 +510,13 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className="flex-1 relative flex bg-gradient-to-br from-gray-50 to-gray-100">
+          {/* Alert Dashboard Sidebar */}
+          <div className="w-80 bg-white border-r border-gray-200 shadow-lg">
+            <div className="p-4 h-full overflow-y-auto">
+              <AlertDashboard />
+            </div>
+          </div>
+          
           {/* Map Container */}
           <div className="flex-1 relative">
             <div
