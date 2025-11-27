@@ -54,11 +54,11 @@ export default function BotpressChatbot() {
         return;
       }
 
-      // Load Botpress inject script
-      await loadScript('https://cdn.botpress.cloud/webchat/v3.3/inject.js', 'botpress-inject');
+      // Load Botpress inject script (v3.4)
+      await loadScript('https://cdn.botpress.cloud/webchat/v3.4/inject.js', 'botpress-inject');
       
       // Load Botpress configuration script (this will auto-initialize the chatbot)
-      await loadScript('https://files.bpcontent.cloud/2024/12/03/12/20241203123000-VO1O9BBC.js', 'botpress-config');
+      await loadScript('https://files.bpcontent.cloud/2024/12/19/15/20241219150617-0RTMXJOK.js', 'botpress-config');
       
       setScriptsLoaded(true);
       console.log('Both Botpress scripts loaded successfully');
